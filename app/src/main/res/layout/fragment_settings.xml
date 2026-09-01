@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="18dp">
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Conta e notificações" android:textSize="26sp" android:textStyle="bold" />
+        <TextView android:id="@+id/settings_user" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" />
+        <com.google.android.material.button.MaterialButton android:id="@+id/settings_enable_notifications" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="18dp" android:text="Ativar notificações" />
+        <com.google.android.material.button.MaterialButton android:id="@+id/settings_disable_notifications" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:text="Desativar neste aparelho" />
+        <com.google.android.material.button.MaterialButton android:id="@+id/settings_sign_out" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="24dp" android:text="Sair da conta" />
+        <com.google.android.material.button.MaterialButton android:id="@+id/settings_delete_account" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:text="Excluir minha conta" />
+        <TextView android:id="@+id/settings_status" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" />
+    </LinearLayout>
+</ScrollView>
