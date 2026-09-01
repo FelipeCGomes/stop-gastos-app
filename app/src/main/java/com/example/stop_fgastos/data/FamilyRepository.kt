@@ -24,6 +24,9 @@ class FamilyRepository {
     private var user: FirebaseUser? = null
     private var state = FamilyState()
     private val listeners = mutableListOf<ListenerRegistration>()
+    private var membersListener: ListenerRegistration? = null
+    private var sharedListsListener: ListenerRegistration? = null
+    private var sharedItemsListener: ListenerRegistration? = null
     private var onState: ((FamilyState) -> Unit)? = null
     private var onError: ((Throwable) -> Unit)? = null
 
@@ -51,6 +54,12 @@ class FamilyRepository {
     fun stop() {
         listeners.forEach { it.remove() }
         listeners.clear()
+        membersListener?.remove()
+        sharedListsListener?.remove()
+        sharedItemsListener?.remove()
+        membersListener = null
+        sharedListsListener = null
+        sharedItemsListener = null
         user = null
         onState = null
         onError = null
@@ -465,12 +474,17 @@ class FamilyRepository {
 
     fun loadSharedItems(listId: String, onResult: (Result<Unit>) -> Unit = {}) {
         val family = state.family ?: return
-        db.collection("families").document(family.id)
+        sharedItemsListener?.remove()
+        sharedItemsListener = db.collection("families").document(family.id)
             .collection("shoppingLists").document(listId)
             .collection("items")
-            .get()
-            .addOnSuccessListener { snaps ->
-                val items = snaps.documents.map { doc ->
+            .addSnapshotListener { snaps, error ->
+                if (error != null) {
+                    onResult(Result.failure(error))
+                    return@addSnapshotListener
+                }
+
+                val items = snaps?.documents.orEmpty().map { doc ->
                     ShoppingItemRecord(
                         id = doc.id,
                         product = doc.getString("product").orEmpty(),
@@ -490,7 +504,6 @@ class FamilyRepository {
                 notifyState()
                 onResult(Result.success(Unit))
             }
-            .addOnFailureListener { onResult(Result.failure(it)) }
     }
 
     fun addSharedItem(
@@ -640,8 +653,17 @@ class FamilyRepository {
                 .whereEqualTo("status", "active")
         }
 
-        membersQuery.get().addOnSuccessListener { memberSnaps ->
-            val members = memberSnaps.documents.map { doc ->
+        state = state.copy(profile = profile, family = family)
+        notifyState()
+
+        membersListener?.remove()
+        membersListener = membersQuery.addSnapshotListener { memberSnaps, error ->
+            if (error != null) {
+                emitError(error)
+                return@addSnapshotListener
+            }
+
+            val members = memberSnaps?.documents.orEmpty().map { doc ->
                 FamilyMemberRecord(
                     uid = doc.getString("uid") ?: doc.id,
                     displayName = doc.getString("displayName").orEmpty(),
@@ -652,31 +674,38 @@ class FamilyRepository {
                 )
             }
 
-            db.collection("families").document(family.id).collection("shoppingLists")
-                .get()
-                .addOnSuccessListener { listSnaps ->
-                    val lists = listSnaps.documents.map { doc ->
-                        FamilyShoppingListRecord(
-                            id = doc.id,
-                            familyId = family.id,
-                            name = doc.getString("name") ?: "Lista",
-                            store = doc.getString("store").orEmpty(),
-                            createdBy = doc.getString("createdBy").orEmpty(),
-                            createdByName = doc.getString("createdByName").orEmpty()
-                        )
-                    }.sortedWith(compareBy<FamilyShoppingListRecord> { it.store.lowercase(Locale("pt", "BR")) }
-                        .thenBy { it.name.lowercase(Locale("pt", "BR")) })
+            state = state.copy(members = members)
+            notifyState()
+        }
 
-                    state = state.copy(
-                        profile = profile,
-                        family = family,
-                        members = members,
-                        sharedLists = lists
-                    )
-                    notifyState()
+        sharedListsListener?.remove()
+        sharedListsListener = db.collection("families").document(family.id)
+            .collection("shoppingLists")
+            .addSnapshotListener { listSnaps, error ->
+                if (error != null) {
+                    emitError(error)
+                    return@addSnapshotListener
                 }
-                .addOnFailureListener(::emitError)
-        }.addOnFailureListener(::emitError)
+
+                val existing = state.sharedLists.associateBy { it.id }
+                val lists = listSnaps?.documents.orEmpty().map { doc ->
+                    FamilyShoppingListRecord(
+                        id = doc.id,
+                        familyId = family.id,
+                        name = doc.getString("name") ?: "Lista",
+                        store = doc.getString("store").orEmpty(),
+                        createdBy = doc.getString("createdBy").orEmpty(),
+                        createdByName = doc.getString("createdByName").orEmpty(),
+                        items = existing[doc.id]?.items.orEmpty()
+                    )
+                }.sortedWith(
+                    compareBy<FamilyShoppingListRecord> { it.store.lowercase(Locale("pt", "BR")) }
+                        .thenBy { it.name.lowercase(Locale("pt", "BR")) }
+                )
+
+                state = state.copy(sharedLists = lists)
+                notifyState()
+            }
     }
 
     private fun ensureOwnProfile(onResult: (Result<UserProfileRecord>) -> Unit) {
