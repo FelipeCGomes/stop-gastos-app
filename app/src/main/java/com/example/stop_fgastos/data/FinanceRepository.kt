@@ -186,6 +186,9 @@ class FinanceRepository {
         )
     }
 
+    fun upsertRecurring(recurring: RecurringRecord, onResult: (Result<Unit>) -> Unit) =
+        upsertRecord("recurring", recurring.id, recurring.toMap(), onResult)
+
     fun upsertCard(card: CardRecord, onResult: (Result<Unit>) -> Unit) =
         upsertRecord("cards", card.id, card.toMap(), onResult)
 
