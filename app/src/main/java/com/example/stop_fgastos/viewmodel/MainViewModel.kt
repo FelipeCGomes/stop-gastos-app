@@ -77,7 +77,10 @@ class MainViewModel : ViewModel() {
         category: String,
         payment: String,
         cardId: String,
-        installmentCount: Int
+        installmentCount: Int,
+        accountId: String = "",
+        tags: String = "",
+        notes: String = ""
     ) {
         val records = buildTransactions(
             type = type,
@@ -87,9 +90,88 @@ class MainViewModel : ViewModel() {
             category = category,
             payment = payment,
             cardId = cardId,
-            requestedInstallments = installmentCount
+            requestedInstallments = installmentCount,
+            accountId = accountId,
+            tags = tags,
+            notes = notes
         )
         runWrite { callback -> repository.upsertTransactions(records, callback) }
+    }
+
+    fun updateTransaction(
+        existing: TransactionRecord,
+        type: String,
+        description: String,
+        total: Double,
+        purchaseDate: String,
+        category: String,
+        payment: String,
+        cardId: String,
+        installmentCount: Int,
+        accountId: String,
+        tags: String,
+        notes: String
+    ) {
+        val finance = _uiState.value.finance
+        val day = LocalDate.parse(purchaseDate).dayOfMonth.coerceIn(1, 31)
+        val effectiveCount = if (payment == "Cartão de crédito") installmentCount.coerceIn(1, 60) else 1
+
+        val sourceRecurring = finance.recurring
+            .firstOrNull { it.id == existing.sourceRecurringId && existing.sourceType == "recurringExpense" }
+            ?.copy(
+                description = description,
+                amount = total,
+                day = day,
+                category = category,
+                payment = payment,
+                accountId = accountId,
+                cardId = cardId,
+                tags = tags,
+                notes = notes,
+                installmentCount = effectiveCount,
+                installmentStartMonth = if (payment == "Cartão de crédito" && effectiveCount > 1) {
+                    purchaseDate.take(7)
+                } else "",
+                updatedAt = nowIso()
+            )
+
+        val sourceIncome = finance.incomeSources
+            .firstOrNull { it.id == existing.sourceRecurringId && existing.sourceType == "incomeSource" }
+            ?.copy(
+                description = description,
+                amount = total,
+                day = day,
+                accountId = accountId,
+                updatedAt = nowIso()
+            )
+
+        val records = buildTransactions(
+            type = type,
+            description = description,
+            total = total,
+            purchaseDate = purchaseDate,
+            category = category,
+            payment = payment,
+            cardId = cardId,
+            requestedInstallments = effectiveCount,
+            sourceRecurringId = existing.sourceRecurringId,
+            sourceType = existing.sourceType,
+            accountId = accountId,
+            tags = tags,
+            notes = notes,
+            billId = existing.billId,
+            createdAt = existing.createdAt
+        )
+
+        runWrite { callback ->
+            repository.replaceTransactionPlan(
+                existing = existing,
+                records = records,
+                sourceRecurring = sourceRecurring,
+                sourceIncome = sourceIncome,
+                onResult = callback
+            )
+        }
     }
 
     fun addFixedCost(
@@ -141,6 +223,78 @@ class MainViewModel : ViewModel() {
         }
     }
 
+    fun updateFixedCost(
+        existing: RecurringRecord,
+        description: String,
+        amount: Double,
+        day: Int,
+        category: String,
+        payment: String,
+        cardId: String,
+        installmentCount: Int
+    ) {
+        val anchorMonth = existing.installmentStartMonth.ifBlank { YearMonth.now().toString() }
+        val anchor = YearMonth.parse(anchorMonth)
+        val safeDay = day.coerceIn(1, anchor.lengthOfMonth())
+        val purchaseDate = anchor.atDay(safeDay).toString()
+        val isCredit = payment == "Cartão de crédito"
+        val effectiveCount = if (isCredit) installmentCount.coerceIn(1, 60) else 1
+        val updated = existing.copy(
+            description = description,
+            amount = amount,
+            day = day.coerceIn(1, 31),
+            category = category,
+            payment = payment,
+            cardId = cardId,
+            installmentCount = effectiveCount,
+            installmentStartMonth = if (isCredit && effectiveCount > 1) anchorMonth else "",
+            updatedAt = nowIso()
+        )
+
+        val records = buildTransactions(
+            type = "expense",
+            description = description,
+            total = amount,
+            purchaseDate = purchaseDate,
+            category = category,
+            payment = payment,
+            cardId = cardId,
+            requestedInstallments = effectiveCount,
+            sourceRecurringId = existing.id,
+            sourceType = "recurringExpense"
+        )
+
+        val replaceMonth = if (isCredit && effectiveCount > 1) null else anchorMonth
+        runWrite { callback ->
+            repository.saveRecurringReplacingSourceTransactions(
+                recurring = updated,
+                records = records,
+                monthKey = replaceMonth,
+                onResult = callback
+            )
+        }
+    }
+
+    fun updateCard(
+        existing: CardRecord,
+        name: String,
+        cardType: String,
+        brand: String,
+        limit: Double,
+        closingDay: Int,
+        dueDay: Int
+    ) {
+        val updated = existing.copy(
+            name = name,
+            cardType = cardType,
+            brand = brand,
+            limit = limit,
+            closingDay = closingDay.coerceIn(1, 31),
+            dueDay = dueDay.coerceIn(1, 31)
+        )
+        runWrite { callback -> repository.upsertCard(updated, callback) }
+    }
+
     fun addCard(
         name: String,
         cardType: String,
@@ -171,6 +325,23 @@ class MainViewModel : ViewModel() {
         runWrite { callback -> repository.upsertCard(card, callback) }
     }
 
+    fun updateAccount(
+        existing: AccountRecord,
+        name: String,
+        type: String,
+        openingBalance: Double,
+        icon: String
+    ) {
+        val updated = existing.copy(
+            name = name,
+            type = type,
+            openingBalance = openingBalance,
+            icon = icon.ifBlank { "🏦" },
+            updatedAt = nowIso()
+        )
+        runWrite { callback -> repository.upsertAccount(updated, callback) }
+    }
+
     fun addAccount(
         name: String,
         type: String,
@@ -186,6 +357,56 @@ class MainViewModel : ViewModel() {
             updatedAt = nowIso()
         )
         runWrite { callback -> repository.upsertAccount(account, callback) }
+    }
+
+    fun updateIncomeSource(
+        existing: IncomeSourceRecord,
+        kind: String,
+        description: String,
+        amount: Double,
+        day: Int,
+        accountId: String,
+        active: Boolean
+    ) {
+        val month = YearMonth.now()
+        val safeDay = day.coerceIn(1, month.lengthOfMonth())
+        val date = month.atDay(safeDay).toString()
+        val timestamp = nowIso()
+
+        val source = existing.copy(
+            kind = kind,
+            description = description,
+            amount = amount,
+            day = day.coerceIn(1, 31),
+            accountId = accountId,
+            active = active,
+            updatedAt = timestamp
+        )
+
+        val transaction = TransactionRecord(
+            id = "tx_" + UUID.randomUUID(),
+            type = "income",
+            description = description,
+            amount = amount,
+            date = date,
+            purchaseDate = date,
+            category = if (kind == "salary") "salario" else "outros",
+            payment = "Renda recorrente",
+            accountId = accountId,
+            purchaseTotal = amount,
+            sourceRecurringId = existing.id,
+            sourceType = "incomeSource",
+            createdAt = timestamp,
+            updatedAt = timestamp
+        )
+
+        runWrite { callback ->
+            if (active) {
+                repository.saveIncomeSourceReplacingMonth(source, month.toString(), transaction, callback)
+            } else {
+                repository.upsertIncomeSource(source, callback)
+            }
+        }
     }
 
     fun addIncomeSource(
@@ -234,6 +455,29 @@ class MainViewModel : ViewModel() {
         runWrite { callback ->
             repository.saveIncomeSourceWithTransactions(source, listOf(transaction), callback)
         }
+    }
+
+    fun updateBill(
+        existing: BillRecord,
+        type: String,
+        description: String,
+        amount: Double,
+        dueDate: String,
+        category: String,
+        accountId: String,
+        notes: String
+    ) {
+        val updated = existing.copy(
+            type = type,
+            description = description,
+            amount = amount,
+            dueDate = dueDate,
+            category = category,
+            accountId = accountId,
+            notes = notes,
+            updatedAt = nowIso()
+        )
+        runWrite { callback -> repository.upsertBill(updated, callback) }
     }
 
     fun addBill(
@@ -294,6 +538,28 @@ class MainViewModel : ViewModel() {
         }
     }
 
+    fun updateTransfer(
+        existing: TransferRecord,
+        fromAccountId: String,
+        toAccountId: String,
+        amount: Double,
+        date: String,
+        notes: String
+    ) {
+        if (fromAccountId == toAccountId) {
+            setLocalError("Escolha contas de origem e destino diferentes.")
+            return
+        }
+        val updated = existing.copy(
+            fromAccountId = fromAccountId,
+            toAccountId = toAccountId,
+            amount = amount,
+            date = date,
+            notes = notes
+        )
+        runWrite { callback -> repository.upsertTransfer(updated, callback) }
+    }
+
     fun addTransfer(
         fromAccountId: String,
         toAccountId: String,
@@ -317,6 +583,16 @@ class MainViewModel : ViewModel() {
         runWrite { callback -> repository.upsertTransfer(transfer, callback) }
     }
 
+    fun updateBudget(existing: BudgetRecord, category: String, amount: Double) {
+        if (_uiState.value.finance.budgets.any { it.category == category && it.id != existing.id }) {
+            setLocalError("Já existe um orçamento para esta categoria.")
+            return
+        }
+        runWrite { callback ->
+            repository.upsertBudget(existing.copy(category = category, amount = amount, updatedAt = nowIso()), callback)
+        }
+    }
+
     fun addBudget(category: String, amount: Double) {
         if (_uiState.value.finance.budgets.any { it.category == category }) {
             setLocalError("Já existe um orçamento para esta categoria.")
@@ -329,6 +605,29 @@ class MainViewModel : ViewModel() {
             updatedAt = nowIso()
         )
         runWrite { callback -> repository.upsertBudget(budget, callback) }
+    }
+
+    fun updateGoal(
+        existing: GoalRecord,
+        name: String,
+        target: Double,
+        current: Double,
+        deadline: String,
+        icon: String
+    ) {
+        runWrite { callback ->
+            repository.upsertGoal(
+                existing.copy(
+                    name = name,
+                    target = target,
+                    current = current,
+                    deadline = deadline,
+                    icon = icon.ifBlank { "🎯" },
+                    updatedAt = nowIso()
+                ),
+                callback
+            )
+        }
     }
 
     fun addGoal(
@@ -350,6 +649,20 @@ class MainViewModel : ViewModel() {
         runWrite { callback -> repository.upsertGoal(goal, callback) }
     }
 
+    fun updateCategory(
+        existing: CategoryRecord,
+        name: String,
+        icon: String,
+        group: String
+    ) {
+        runWrite { callback ->
+            repository.upsertCategory(
+                existing.copy(name = name, icon = icon.ifBlank { "📦" }, group = group),
+                callback
+            )
+        }
+    }
+
     fun addCategory(
         name: String,
         icon: String,
@@ -362,6 +675,40 @@ class MainViewModel : ViewModel() {
             group = group
         )
         runWrite { callback -> repository.upsertCategory(category, callback) }
+    }
+
+    fun updateShoppingList(existing: ShoppingListRecord, name: String, store: String) {
+        runWrite { callback ->
+            repository.upsertShoppingList(
+                existing.copy(name = name, store = store, updatedAt = nowIso()),
+                callback
+            )
+        }
+    }
+
+    fun updateShoppingItem(
+        listId: String,
+        itemId: String,
+        product: String,
+        qty: Double,
+        unitPrice: Double
+    ) {
+        val list = _uiState.value.finance.shoppingLists.firstOrNull { it.id == listId }
+            ?: return setLocalError("Lista de compras não encontrada.")
+        val timestamp = nowIso()
+        val updatedItems = list.items.map { item ->
+            if (item.id == itemId) {
+                item.copy(
+                    product = product,
+                    qty = qty,
+                    unitPrice = unitPrice,
+                    updatedAt = timestamp
+                )
+            } else item
+        }
+        runWrite { callback ->
+            repository.upsertShoppingList(list.copy(items = updatedItems, updatedAt = timestamp), callback)
+        }
     }
 
     fun addShoppingList(name: String, store: String) {
@@ -457,6 +804,72 @@ class MainViewModel : ViewModel() {
     fun deleteShoppingList(record: ShoppingListRecord) =
         runWrite { callback -> repository.deleteShoppingList(record, callback) }
 
+    fun ensureRecurringForMonth(month: YearMonth) {
+        val finance = _uiState.value.finance
+        val monthKey = month.toString()
+        val pending = mutableListOf<TransactionRecord>()
+
+        finance.recurring
+            .filter { it.active && it.type != "income" }
+            .forEach { recurring ->
+                val finiteCredit = recurring.payment == "Cartão de crédito" && recurring.installmentCount > 1
+                val alreadyExists = finance.transactions.any { tx ->
+                    tx.sourceRecurringId == recurring.id &&
+                        if (finiteCredit) true else tx.date.startsWith(monthKey)
+                }
+                if (alreadyExists) return@forEach
+
+                val anchor = if (finiteCredit) {
+                    YearMonth.parse(recurring.installmentStartMonth.ifBlank { monthKey })
+                } else month
+                val day = recurring.day.coerceIn(1, anchor.lengthOfMonth())
+                val purchaseDate = anchor.atDay(day).toString()
+                pending += buildTransactions(
+                    type = "expense",
+                    description = recurring.description,
+                    total = recurring.amount,
+                    purchaseDate = purchaseDate,
+                    category = recurring.category,
+                    payment = recurring.payment,
+                    cardId = recurring.cardId,
+                    requestedInstallments = recurring.installmentCount,
+                    sourceRecurringId = recurring.id,
+                    sourceType = "recurringExpense"
+                )
+            }
+
+        finance.incomeSources
+            .filter { it.active }
+            .forEach { source ->
+                val exists = finance.transactions.any {
+                    it.sourceRecurringId == source.id && it.date.startsWith(monthKey)
+                }
+                if (exists) return@forEach
+                val day = source.day.coerceIn(1, month.lengthOfMonth())
+                val date = month.atDay(day).toString()
+                pending += TransactionRecord(
+                    id = "tx_" + UUID.randomUUID(),
+                    type = "income",
+                    description = source.description,
+                    amount = source.amount,
+                    date = date,
+                    purchaseDate = date,
+                    category = if (source.kind == "salary") "salario" else "outros",
+                    payment = "Renda recorrente",
+                    accountId = source.accountId,
+                    purchaseTotal = source.amount,
+                    sourceRecurringId = source.id,
+                    sourceType = "incomeSource",
+                    createdAt = nowIso(),
+                    updatedAt = nowIso()
+                )
+            }
+
+        if (pending.isNotEmpty()) {
+            runWrite { callback -> repository.upsertTransactions(pending, callback) }
+        }
+    }
+
     fun refreshFamily() {
         familyRepository.refresh()
     }
@@ -542,7 +955,12 @@ class MainViewModel : ViewModel() {
         cardId: String,
         requestedInstallments: Int,
         sourceRecurringId: String = "",
-        sourceType: String = ""
+        sourceType: String = "",
+        accountId: String = "",
+        tags: String = "",
+        notes: String = "",
+        billId: String = "",
+        createdAt: String = ""
     ): List<TransactionRecord> {
         val card = _uiState.value.finance.cards.firstOrNull { it.id == cardId }
         val isCredit = type == "expense" &&
@@ -556,6 +974,7 @@ class MainViewModel : ViewModel() {
         val firstInvoice = if (isCredit) cardInvoiceMonth(purchase, card!!) else null
         val group = if (count > 1) "inst_" + UUID.randomUUID() else ""
         val now = nowIso()
+        val created = createdAt.ifBlank { now }
 
         return amounts.mapIndexed { index, amount ->
             val installmentNo = index + 1
@@ -589,7 +1008,8 @@ class MainViewModel : ViewModel() {
                 installmentAmount = amount,
                 sourceRecurringId = sourceRecurringId,
                 sourceType = sourceType,
-                createdAt = now,
+                billId = billId,
+                createdAt = created,
                 updatedAt = now
             )
         }
