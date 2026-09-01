@@ -222,7 +222,7 @@ internal fun FixedCostEditorDialog(
     finance: FinanceState,
     initial: RecurringRecord?,
     onDismiss: () -> Unit,
-    onSave: (String, Double, Int, String, String, String, Int) -> Unit
+    onSave: (String, Double, Int, String, String, String, Int, String, Boolean) -> Unit
 ) {
     var description by remember(initial?.id) { mutableStateOf(initial?.description.orEmpty()) }
     var amount by remember(initial?.id) { mutableStateOf(initial?.amount?.toString().orEmpty()) }
@@ -231,6 +231,8 @@ internal fun FixedCostEditorDialog(
     var payment by remember(initial?.id) { mutableStateOf(initial?.payment?.ifBlank { "Pix" } ?: "Pix") }
     var cardId by remember(initial?.id) { mutableStateOf(initial?.cardId.orEmpty()) }
     var installments by remember(initial?.id) { mutableStateOf((initial?.installmentCount ?: 1).toString()) }
+    var kind by remember(initial?.id) { mutableStateOf(initial?.kind ?: "fixed") }
+    var active by remember(initial?.id) { mutableStateOf(initial?.active ?: true) }
 
     val matching = editorCardsForPayment(finance.cards, payment)
     LaunchedEffect(payment, finance.cards) {
@@ -254,12 +256,25 @@ internal fun FixedCostEditorDialog(
                     category,
                     payment,
                     cardId,
-                    installments.toIntOrNull()?.coerceIn(1, 60) ?: 1
+                    installments.toIntOrNull()?.coerceIn(1, 60) ?: 1,
+                    kind,
+                    active
                 )
             }
         }
     ) {
         EditorText("Descrição", description) { description = it }
+        ChoiceField(
+            "Tipo",
+            if (kind == "subscription") "Assinatura" else "Despesa fixa",
+            listOf("Despesa fixa", "Assinatura")
+        ) { label ->
+            kind = if (label == "Assinatura") "subscription" else "fixed"
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text("Ativo", modifier = Modifier.weight(1f))
+            Switch(checked = active, onCheckedChange = { active = it })
+        }
         EditorNumber("Valor", amount) { amount = it }
         EditorNumber("Dia", day) { day = it }
         val cats = categoryOptions(finance)
@@ -288,19 +303,21 @@ internal fun FixedCostEditorDialog(
 internal fun AccountEditorDialog(
     initial: AccountRecord?,
     onDismiss: () -> Unit,
-    onSave: (String, String, Double, String) -> Unit
+    onSave: (String, String, Double, String, String) -> Unit
 ) {
     var name by remember(initial?.id) { mutableStateOf(initial?.name.orEmpty()) }
     var type by remember(initial?.id) { mutableStateOf(initial?.type ?: "Conta corrente") }
     var opening by remember(initial?.id) { mutableStateOf((initial?.openingBalance ?: 0.0).toString()) }
     var icon by remember(initial?.id) { mutableStateOf(initial?.icon ?: "🏦") }
+    var color by remember(initial?.id) { mutableStateOf(initial?.color ?: "#7c5cff") }
     EditorDialog(if (initial == null) "Nova conta" else "Editar conta", onDismiss, {
-        if (name.isNotBlank()) onSave(name.trim(), type, editorNumber(opening), icon)
+        if (name.isNotBlank()) onSave(name.trim(), type, editorNumber(opening), icon, normalizeHexColor(color, "#7c5cff"))
     }) {
         EditorText("Nome", name) { name = it }
         ChoiceField("Tipo", type, listOf("Conta corrente", "Conta poupança", "Dinheiro", "Carteira digital", "Investimento")) { type = it }
         EditorNumber("Saldo inicial", opening) { opening = it }
         EditorText("Ícone", icon) { icon = it }
+        EditorText("Cor (#RRGGBB)", color) { color = it }
     }
 }
 
@@ -479,7 +496,7 @@ internal fun GoalEditorDialog(
 internal fun CategoryEditorDialog(
     initial: CategoryRecord?,
     onDismiss: () -> Unit,
-    onSave: (String, String, String) -> Unit
+    onSave: (String, String, String, String) -> Unit
 ) {
     val groups = listOf(
         "essential" to "Essencial",
@@ -490,11 +507,13 @@ internal fun CategoryEditorDialog(
     var name by remember(initial?.id) { mutableStateOf(initial?.name.orEmpty()) }
     var icon by remember(initial?.id) { mutableStateOf(initial?.icon ?: "📦") }
     var group by remember(initial?.id) { mutableStateOf(initial?.group ?: "essential") }
+    var color by remember(initial?.id) { mutableStateOf(initial?.color ?: "#8d99ae") }
     EditorDialog(if (initial == null) "Nova categoria" else "Editar categoria", onDismiss, {
-        if (name.isNotBlank()) onSave(name.trim(), icon, group)
+        if (name.isNotBlank()) onSave(name.trim(), icon, group, normalizeHexColor(color, "#8d99ae"))
     }) {
         EditorText("Nome", name) { name = it }
         EditorText("Ícone", icon) { icon = it }
+        EditorText("Cor (#RRGGBB)", color) { color = it }
         ChoiceField("Grupo", groups.first { it.first == group }.second, groups.map { it.second }) { label ->
             group = groups.first { it.second == label }.first
         }
@@ -503,9 +522,10 @@ internal fun CategoryEditorDialog(
 
 @Composable
 internal fun CardEditorDialog(
+    finance: FinanceState,
     initial: CardRecord?,
     onDismiss: () -> Unit,
-    onSave: (String, String, String, Double, Int, Int) -> Unit
+    onSave: (String, String, String, Double, Int, Int, String, String) -> Unit
 ) {
     val types = listOf(
         "credit" to "Cartão de crédito",
@@ -520,6 +540,8 @@ internal fun CardEditorDialog(
     var limit by remember(initial?.id) { mutableStateOf(initial?.limit?.toString().orEmpty()) }
     var closing by remember(initial?.id) { mutableStateOf((initial?.closingDay ?: 3).toString()) }
     var due by remember(initial?.id) { mutableStateOf((initial?.dueDay ?: 10).toString()) }
+    var accountId by remember(initial?.id) { mutableStateOf(initial?.accountId.orEmpty()) }
+    var color by remember(initial?.id) { mutableStateOf(initial?.color ?: "#141b34") }
 
     EditorDialog(if (initial == null) "Novo cartão/benefício" else "Editar cartão/benefício", onDismiss, {
         val value = editorNumber(limit)
@@ -530,7 +552,9 @@ internal fun CardEditorDialog(
                 brand.trim(),
                 value,
                 closing.toIntOrNull()?.coerceIn(1, 31) ?: 3,
-                due.toIntOrNull()?.coerceIn(1, 31) ?: 10
+                due.toIntOrNull()?.coerceIn(1, 31) ?: 10,
+                accountId,
+                normalizeHexColor(color, "#141b34")
             )
         }
     }) {
@@ -540,9 +564,21 @@ internal fun CardEditorDialog(
         }
         EditorText(if (type == "credit") "Bandeira" else "Emissor", brand) { brand = it }
         EditorNumber(if (type == "credit") "Limite" else "Saldo/crédito", limit) { limit = it }
+        EditorText("Cor (#RRGGBB)", color) { color = it }
         if (type == "credit") {
+            if (finance.accounts.isNotEmpty()) {
+                ChoiceField(
+                    "Conta vinculada",
+                    finance.accounts.firstOrNull { it.id == accountId }?.name ?: "Sem conta",
+                    listOf("Sem conta") + finance.accounts.map { it.name }
+                ) { label ->
+                    accountId = finance.accounts.firstOrNull { it.name == label }?.id.orEmpty()
+                }
+            }
             EditorNumber("Dia do fechamento", closing) { closing = it }
             EditorNumber("Dia do vencimento", due) { due = it }
+        } else {
+            accountId = ""
         }
     }
 }
@@ -628,6 +664,11 @@ private fun EditorNumber(label: String, value: String, onChange: (String) -> Uni
         singleLine = true,
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
     )
+}
+
+private fun normalizeHexColor(value: String, fallback: String): String {
+    val clean = value.trim()
+    return if (Regex("^#[0-9A-Fa-f]{6}$").matches(clean)) clean else fallback
 }
 
 private fun editorNumber(value: String): Double =
