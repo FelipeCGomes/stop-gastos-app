@@ -127,10 +127,7 @@ class MainViewModel : ViewModel() {
                 day = day,
                 category = category,
                 payment = payment,
-                accountId = accountId,
                 cardId = cardId,
-                tags = tags,
-                notes = notes,
                 installmentCount = effectiveCount,
                 installmentStartMonth = if (payment == "Cartão de crédito" && effectiveCount > 1) {
                     purchaseDate.take(7)
