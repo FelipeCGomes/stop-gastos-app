@@ -47,7 +47,7 @@ private enum class WalletSection(val label: String) {
 }
 
 private enum class MoreSection(val label: String) {
-    CATEGORIES("Categorias"), SHOPPING("Compras"), SETTINGS("Conta")
+    FAMILY("Família"), CATEGORIES("Categorias"), SHOPPING("Compras"), SETTINGS("Conta")
 }
 
 @Composable
@@ -90,6 +90,7 @@ fun MoreHubScreen(state: MainUiState, viewModel: MainViewModel) {
             section = MoreSection.entries.first { it.label == label }
         }
         when (section) {
+            MoreSection.FAMILY -> FamilyScreen(state, viewModel)
             MoreSection.CATEGORIES -> CategoriesScreen(state.finance, viewModel)
             MoreSection.SHOPPING -> ShoppingScreen(state.finance, viewModel)
             MoreSection.SETTINGS -> NativeAccountSettings(state, viewModel)
