@@ -54,6 +54,10 @@ public final class SaveTransactionUseCase {
         repository.replaceTransactionPlan(existing, replacement, callback);
     }
 
+    public void delete(FinanceRecord existing, ResultCallback<Void> callback) {
+        repository.replaceTransactionPlan(existing, List.of(), callback);
+    }
+
     public List<FinanceRecord> buildPlan(
             FinanceState state,
             TransactionInput input,
