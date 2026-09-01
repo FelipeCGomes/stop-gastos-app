@@ -48,6 +48,7 @@ public final class RecordAdapter extends RecyclerView.Adapter<RecordAdapter.Hold
         holder.subtitle.setText(row.subtitle);
         holder.value.setText(row.value);
         holder.primary.setText(row.primaryLabel);
+        holder.primary.setVisibility(row.primaryLabel.isBlank() ? View.GONE : View.VISIBLE);
         holder.delete.setVisibility(row.deletable ? View.VISIBLE : View.GONE);
         holder.primary.setOnClickListener(v -> listener.onPrimary(row));
         holder.delete.setOnClickListener(v -> listener.onDelete(row));
