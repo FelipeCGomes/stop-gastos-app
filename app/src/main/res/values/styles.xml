@@ -4,13 +4,13 @@
         <item name="android:textStyle">bold</item>
         <item name="android:letterSpacing">0.12</item>
         <item name="android:textAllCaps">true</item>
-        <item name="android:textSize">10sp</item>
+        <item name="android:textSize">9sp</item>
     </style>
 
     <style name="TextAppearance.StopGastos.Title" parent="TextAppearance.Material3.HeadlineMedium">
         <item name="android:textColor">@color/text_primary</item>
         <item name="android:textStyle">bold</item>
-        <item name="android:textSize">24sp</item>
+        <item name="android:textSize">20sp</item>
     </style>
 
     <style name="TextAppearance.StopGastos.Section" parent="TextAppearance.Material3.TitleMedium">
@@ -22,6 +22,18 @@
     <style name="TextAppearance.StopGastos.BodyMuted" parent="TextAppearance.Material3.BodyMedium">
         <item name="android:textColor">@color/text_muted</item>
         <item name="android:textSize">11sp</item>
+        <item name="android:lineSpacingExtra">2dp</item>
+    </style>
+
+    <style name="TextAppearance.StopGastos.Caption" parent="TextAppearance.Material3.LabelSmall">
+        <item name="android:textColor">@color/text_muted</item>
+        <item name="android:textSize">9sp</item>
+    </style>
+
+    <style name="TextAppearance.StopGastos.CardValue" parent="TextAppearance.Material3.TitleLarge">
+        <item name="android:textColor">@color/text_primary</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textSize">17sp</item>
     </style>
 
     <style name="TextAppearance.StopGastos.Nav" parent="TextAppearance.Material3.LabelSmall">
@@ -38,8 +50,24 @@
 
     <style name="Widget.StopGastos.Card" parent="Widget.Material3.CardView.Elevated">
         <item name="cardBackgroundColor">@color/surface</item>
-        <item name="cardCornerRadius">18dp</item>
-        <item name="cardElevation">3dp</item>
+        <item name="cardCornerRadius">@dimen/card_radius</item>
+        <item name="cardElevation">2dp</item>
+        <item name="strokeColor">@color/line</item>
+        <item name="strokeWidth">1dp</item>
+    </style>
+
+    <style name="Widget.StopGastos.Card.Flat" parent="Widget.Material3.CardView.Elevated">
+        <item name="cardBackgroundColor">@color/surface</item>
+        <item name="cardCornerRadius">@dimen/card_radius</item>
+        <item name="cardElevation">0dp</item>
+        <item name="strokeColor">@color/line</item>
+        <item name="strokeWidth">1dp</item>
+    </style>
+
+    <style name="Widget.StopGastos.Card.Soft" parent="Widget.Material3.CardView.Elevated">
+        <item name="cardBackgroundColor">@color/surface_2</item>
+        <item name="cardCornerRadius">14dp</item>
+        <item name="cardElevation">0dp</item>
         <item name="strokeColor">@color/line</item>
         <item name="strokeWidth">1dp</item>
     </style>
@@ -47,32 +75,39 @@
     <style name="Widget.StopGastos.Button.Primary" parent="Widget.Material3.Button">
         <item name="backgroundTint">@color/primary</item>
         <item name="android:textColor">@color/white</item>
-        <item name="cornerRadius">11dp</item>
-        <item name="android:minHeight">42dp</item>
+        <item name="cornerRadius">12dp</item>
+        <item name="android:minHeight">@dimen/control_height</item>
         <item name="android:textAllCaps">false</item>
         <item name="android:textStyle">bold</item>
+        <item name="android:textSize">12sp</item>
     </style>
 
     <style name="Widget.StopGastos.Button.Secondary" parent="Widget.Material3.Button.OutlinedButton">
         <item name="backgroundTint">@color/surface</item>
         <item name="strokeColor">@color/line</item>
         <item name="android:textColor">@color/text_primary</item>
-        <item name="cornerRadius">11dp</item>
-        <item name="android:minHeight">42dp</item>
+        <item name="cornerRadius">12dp</item>
+        <item name="android:minHeight">@dimen/control_height</item>
         <item name="android:textAllCaps">false</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textSize">12sp</item>
     </style>
 
     <style name="Widget.StopGastos.Button.Danger" parent="Widget.Material3.Button.OutlinedButton">
         <item name="backgroundTint">@color/danger_soft</item>
         <item name="strokeColor">@color/danger</item>
         <item name="android:textColor">@color/expense</item>
-        <item name="cornerRadius">11dp</item>
+        <item name="cornerRadius">12dp</item>
+        <item name="android:minHeight">@dimen/control_height</item>
         <item name="android:textAllCaps">false</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textSize">12sp</item>
     </style>
 
     <style name="Widget.StopGastos.Button.Text" parent="Widget.Material3.Button.TextButton">
         <item name="android:textColor">@color/hero_label</item>
         <item name="android:textAllCaps">false</item>
+        <item name="android:textStyle">bold</item>
     </style>
 
     <style name="Widget.StopGastos.Input" parent="@android:style/Widget.EditText">
@@ -81,6 +116,7 @@
         <item name="android:textColorHint">@color/text_muted</item>
         <item name="android:paddingStart">14dp</item>
         <item name="android:paddingEnd">14dp</item>
-        <item name="android:minHeight">42dp</item>
+        <item name="android:minHeight">@dimen/control_height</item>
+        <item name="android:textSize">12sp</item>
     </style>
 </resources>
