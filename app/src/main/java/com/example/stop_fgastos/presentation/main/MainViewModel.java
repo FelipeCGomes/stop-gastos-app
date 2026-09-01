@@ -91,6 +91,11 @@ public final class MainViewModel extends ViewModel {
         container.saveTransaction.delete(record, writeCallback());
     }
 
+    public void payBill(FinanceRecord bill) {
+        sync.setValue("Sincronizando");
+        container.payBill.execute(bill, writeCallback());
+    }
+
     public void saveRecord(FinanceSection section, FinanceRecord record) {
         sync.setValue("Sincronizando");
         container.manageFinance.save(section, record, writeCallback());
