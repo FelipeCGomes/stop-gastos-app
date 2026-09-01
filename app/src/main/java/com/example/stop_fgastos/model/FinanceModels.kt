@@ -519,6 +519,30 @@ data class ShoppingListRecord(
     }
 }
 
+data class FinanceSettingsRecord(
+    val theme: String = "system",
+    val monthlyBudget: Double = 0.0,
+    val privacyMode: Boolean = false,
+    val raw: Map<String, Any?> = emptyMap()
+) {
+    fun toMap(): Map<String, Any?> = raw.toMutableMap().apply {
+        put("theme", theme)
+        put("monthlyBudget", monthlyBudget)
+        put("privacyMode", privacyMode)
+    }
+
+    companion object {
+        fun fromMap(map: Map<String, Any?>) = FinanceSettingsRecord(
+            theme = map.text("theme", "system").let {
+                if (it in setOf("system", "light", "dark")) it else "system"
+            },
+            monthlyBudget = map.number("monthlyBudget").coerceAtLeast(0.0),
+            privacyMode = map.bool("privacyMode"),
+            raw = map
+        )
+    }
+}
+
 data class FinanceState(
     val transactions: List<TransactionRecord> = emptyList(),
     val recurring: List<RecurringRecord> = emptyList(),
@@ -530,5 +554,8 @@ data class FinanceState(
     val budgets: List<BudgetRecord> = emptyList(),
     val goals: List<GoalRecord> = emptyList(),
     val categories: List<CategoryRecord> = emptyList(),
-    val shoppingLists: List<ShoppingListRecord> = emptyList()
+    val shoppingLists: List<ShoppingListRecord> = emptyList(),
+    val shoppingActiveListId: String = "",
+    val audit: List<Map<String, Any?>> = emptyList(),
+    val settings: FinanceSettingsRecord = FinanceSettingsRecord()
 )
