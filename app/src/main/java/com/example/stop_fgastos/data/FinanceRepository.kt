@@ -92,6 +92,80 @@ class FinanceRepository {
         }, onResult)
     }
 
+    fun replaceTransactionPlan(
+        existing: TransactionRecord,
+        records: List<TransactionRecord>,
+        sourceRecurring: RecurringRecord? = null,
+        sourceIncome: IncomeSourceRecord? = null,
+        onResult: (Result<Unit>) -> Unit
+    ) {
+        val sourceSection = when {
+            sourceRecurring != null -> "recurring"
+            sourceIncome != null -> "incomeSources"
+            else -> null
+        }
+
+        if (sourceSection == null) {
+            mutateList("transactions", { list ->
+                removeTransactionPlanInMemory(list, existing)
+                records.forEach { record -> upsertInMemory(list, record.id, record.toMap()) }
+            }, onResult)
+            return
+        }
+
+        mutateTwoSections(
+            firstSection = sourceSection,
+            secondSection = "transactions",
+            firstMutation = { list ->
+                sourceRecurring?.let { upsertInMemory(list, it.id, it.toMap()) }
+                sourceIncome?.let { upsertInMemory(list, it.id, it.toMap()) }
+            },
+            secondMutation = { list ->
+                removeTransactionPlanInMemory(list, existing)
+                records.forEach { record -> upsertInMemory(list, record.id, record.toMap()) }
+            },
+            onResult = onResult
+        )
+    }
+
+    fun saveRecurringReplacingSourceTransactions(
+        recurring: RecurringRecord,
+        records: List<TransactionRecord>,
+        onResult: (Result<Unit>) -> Unit
+    ) {
+        mutateTwoSections(
+            firstSection = "recurring",
+            secondSection = "transactions",
+            firstMutation = { list -> upsertInMemory(list, recurring.id, recurring.toMap()) },
+            secondMutation = { list ->
+                list.removeAll { it["sourceRecurringId"]?.toString() == recurring.id }
+                records.forEach { record -> upsertInMemory(list, record.id, record.toMap()) }
+            },
+            onResult = onResult
+        )
+    }
+
+    fun saveIncomeSourceReplacingMonth(
+        source: IncomeSourceRecord,
+        monthKey: String,
+        record: TransactionRecord,
+        onResult: (Result<Unit>) -> Unit
+    ) {
+        mutateTwoSections(
+            firstSection = "incomeSources",
+            secondSection = "transactions",
+            firstMutation = { list -> upsertInMemory(list, source.id, source.toMap()) },
+            secondMutation = { list ->
+                list.removeAll {
+                    it["sourceRecurringId"]?.toString() == source.id &&
+                        (it["date"]?.toString()?.startsWith(monthKey) == true)
+                }
+                upsertInMemory(list, record.id, record.toMap())
+            },
+            onResult = onResult
+        )
+    }
+
     fun saveRecurringWithTransactions(
         recurring: RecurringRecord,
         records: List<TransactionRecord>,
@@ -237,6 +311,17 @@ class FinanceRepository {
         mutateList(section, { list ->
             list.removeAll { it["id"]?.toString() == id }
         }, onResult)
+    }
+
+    private fun removeTransactionPlanInMemory(
+        list: MutableList<MutableMap<String, Any?>>,
+        existing: TransactionRecord
+    ) {
+        if (existing.installmentGroup.isNotBlank()) {
+            list.removeAll { it["installmentGroup"]?.toString() == existing.installmentGroup }
+        } else {
+            list.removeAll { it["id"]?.toString() == existing.id }
+        }
     }
 
     private fun upsertInMemory(
