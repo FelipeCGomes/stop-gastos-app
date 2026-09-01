@@ -826,7 +826,7 @@ class FamilyRepository {
     private fun emailDirectoryKey(email: String): String {
         val digest = MessageDigest.getInstance("SHA-256")
             .digest(normalizeEmail(email).toByteArray(Charsets.UTF_8))
-        return digest.joinToString("") { "%02x".format(it) }
+        return digest.joinToString("") { "%02x".format(it.toInt() and 0xff) }
     }
 
     private fun notifyState() {
