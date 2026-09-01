@@ -11,6 +11,7 @@ import androidx.navigation.ui.NavigationUI;
 
 import com.example.stop_fgastos.R;
 import com.example.stop_fgastos.presentation.common.UiMotion;
+import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 
 import java.util.Set;
@@ -18,6 +19,8 @@ import java.util.Set;
 public final class MainActivity extends AppCompatActivity {
     private BottomNavigationView bottomNavigation;
     private View bottomNavigationCard;
+    private View topNavigationCard;
+    private MaterialToolbar topNavigation;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -27,6 +30,8 @@ public final class MainActivity extends AppCompatActivity {
 
         bottomNavigation = findViewById(R.id.bottom_navigation);
         bottomNavigationCard = findViewById(R.id.bottom_navigation_card);
+        topNavigationCard = findViewById(R.id.top_navigation_card);
+        topNavigation = findViewById(R.id.top_navigation);
 
         NavHostFragment host = (NavHostFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.nav_host_fragment);
@@ -34,6 +39,7 @@ public final class MainActivity extends AppCompatActivity {
 
         NavController navController = host.getNavController();
         NavigationUI.setupWithNavController(bottomNavigation, navController);
+        topNavigation.setNavigationOnClickListener(v -> navController.navigateUp());
 
         Set<Integer> primary = Set.of(
                 R.id.dashboardFragment,
@@ -44,15 +50,21 @@ public final class MainActivity extends AppCompatActivity {
         );
 
         navController.addOnDestinationChangedListener((controller, destination, arguments) -> {
-            boolean showBottom = primary.contains(destination.getId());
-            if (showBottom) {
-                if (bottomNavigationCard.getVisibility() != View.VISIBLE) {
-                    bottomNavigationCard.setVisibility(View.VISIBLE);
-                    UiMotion.enter(bottomNavigationCard);
+            boolean isLogin = destination.getId() == R.id.loginFragment;
+            boolean isPrimary = primary.contains(destination.getId());
+
+            bottomNavigationCard.setVisibility(isPrimary ? View.VISIBLE : View.GONE);
+
+            if (!isPrimary && !isLogin) {
+                topNavigation.setTitle(destination.getLabel());
+                if (topNavigationCard.getVisibility() != View.VISIBLE) {
+                    topNavigationCard.setVisibility(View.VISIBLE);
+                    UiMotion.enter(topNavigationCard);
                 }
             } else {
-                bottomNavigationCard.setVisibility(View.GONE);
+                topNavigationCard.setVisibility(View.GONE);
             }
+
             View hostView = host.getView();
             if (hostView != null) UiMotion.enter(hostView);
         });

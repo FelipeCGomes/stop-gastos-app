@@ -3,6 +3,7 @@ package com.example.stop_fgastos;
 import android.app.Application;
 
 import com.example.stop_fgastos.di.AppContainer;
+import com.example.stop_fgastos.presentation.common.UiTheme;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.FirebaseOptions;
 
@@ -18,6 +19,7 @@ public final class StopGastosApplication extends Application {
     @Override
     public void onCreate() {
         super.onCreate();
+        UiTheme.apply(this);
         ensureFirebaseInitialized();
         container = new AppContainer(this);
     }

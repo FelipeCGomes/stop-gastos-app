@@ -20,11 +20,13 @@ import com.example.stop_fgastos.R;
 import com.example.stop_fgastos.domain.model.UserSession;
 import com.example.stop_fgastos.domain.repository.ResultCallback;
 import com.example.stop_fgastos.presentation.auth.GoogleAuthUi;
+import com.example.stop_fgastos.presentation.common.UiTheme;
 import com.example.stop_fgastos.presentation.common.ViewModelAccess;
 import com.example.stop_fgastos.presentation.main.MainViewModel;
 import com.google.android.gms.auth.api.signin.GoogleSignIn;
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
 import com.google.android.gms.common.api.ApiException;
+import com.google.android.material.button.MaterialButtonToggleGroup;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 public final class SettingsFragment extends Fragment {
@@ -90,9 +92,9 @@ public final class SettingsFragment extends Fragment {
         userLabel = view.findViewById(R.id.settings_user);
         status = view.findViewById(R.id.settings_status);
 
-        view.findViewById(R.id.settings_enable_notifications).setOnClickListener(v ->
-                requestNotifications()
-        );
+        configureTheme(view);
+
+        view.findViewById(R.id.settings_enable_notifications).setOnClickListener(v -> requestNotifications());
 
         view.findViewById(R.id.settings_disable_notifications).setOnClickListener(v ->
                 viewModel.disableNotifications(new ResultCallback<Void>() {
@@ -114,13 +116,35 @@ public final class SettingsFragment extends Fragment {
             requireActivity().recreate();
         });
 
-        view.findViewById(R.id.settings_delete_account).setOnClickListener(v ->
-                confirmDelete()
-        );
+        view.findViewById(R.id.settings_delete_account).setOnClickListener(v -> confirmDelete());
 
         viewModel.user().observe(getViewLifecycleOwner(), this::renderUser);
         viewModel.error().observe(getViewLifecycleOwner(), message -> {
             if (message != null && !message.isBlank()) setStatus(message);
+        });
+    }
+
+    private void configureTheme(View view) {
+        MaterialButtonToggleGroup group = view.findViewById(R.id.settings_theme_group);
+        String mode = UiTheme.mode(requireContext());
+
+        if (UiTheme.LIGHT.equals(mode)) {
+            group.check(R.id.settings_theme_light);
+        } else if (UiTheme.DARK.equals(mode)) {
+            group.check(R.id.settings_theme_dark);
+        } else {
+            group.check(R.id.settings_theme_system);
+        }
+
+        group.addOnButtonCheckedListener((toggleGroup, checkedId, isChecked) -> {
+            if (!isChecked) return;
+            if (checkedId == R.id.settings_theme_light) {
+                UiTheme.set(requireContext(), UiTheme.LIGHT);
+            } else if (checkedId == R.id.settings_theme_dark) {
+                UiTheme.set(requireContext(), UiTheme.DARK);
+            } else {
+                UiTheme.set(requireContext(), UiTheme.SYSTEM);
+            }
         });
     }
 
@@ -172,9 +196,7 @@ public final class SettingsFragment extends Fragment {
                         setStatus("Configure o app Android no Firebase antes de excluir a conta.");
                         return;
                     }
-                    reauthLauncher.launch(
-                            GoogleAuthUi.client(requireContext()).getSignInIntent()
-                    );
+                    reauthLauncher.launch(GoogleAuthUi.client(requireContext()).getSignInIntent());
                 })
                 .show();
     }

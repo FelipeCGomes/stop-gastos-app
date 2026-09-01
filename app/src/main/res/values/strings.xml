@@ -2,7 +2,7 @@
     <string name="app_name">Stop Gastos</string>
     <string name="firebase_web_client_id_override">REPLACE_WITH_FIREBASE_WEB_CLIENT_ID.apps.googleusercontent.com</string>
     <string name="nav_dashboard">Início</string>
-    <string name="nav_transactions">Lançamentos</string>
+    <string name="nav_transactions">Lançar</string>
     <string name="nav_planning">Planejar</string>
     <string name="nav_wallet">Carteira</string>
     <string name="nav_more">Mais</string>

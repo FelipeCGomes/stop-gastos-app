@@ -20,6 +20,16 @@
         <item name="android:textColor">@color/text_muted</item>
         <item name="android:textSize">13sp</item>
     </style>
+    <style name="TextAppearance.StopGastos.Nav" parent="TextAppearance.Material3.LabelSmall">
+        <item name="android:textColor">@color/text_muted</item>
+        <item name="android:textSize">9sp</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+    <style name="TextAppearance.StopGastos.Nav.Active" parent="TextAppearance.Material3.LabelSmall">
+        <item name="android:textColor">@color/primary_2</item>
+        <item name="android:textSize">9sp</item>
+        <item name="android:textStyle">bold</item>
+    </style>
     <style name="Widget.StopGastos.Card" parent="Widget.Material3.CardView.Elevated">
         <item name="cardBackgroundColor">@color/surface</item>
         <item name="cardCornerRadius">18dp</item>
