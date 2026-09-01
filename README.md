@@ -4,9 +4,9 @@ Versão Android nativa do **Stop Gastos**, migrada do projeto web `FelipeCGomes/
 
 ## Stack
 
-- Kotlin como linguagem principal do app
-- Java para regras/cálculos financeiros compartilhados
-- Jetpack Compose + Material 3
+- Java no aplicativo nativo atual
+- Android Views/XML + Material 3
+- MVVM
 - MVVM
 - Firebase Authentication
 - Cloud Firestore
@@ -14,6 +14,21 @@ Versão Android nativa do **Stop Gastos**, migrada do projeto web `FelipeCGomes/
 - Android Credential Manager para login Google
 - Sem WebView
 - Sem HTML/CSS/JavaScript na interface Android
+
+## Paridade visual com o site
+
+O Android usa o mesmo design system do Stop Gastos web:
+
+- fundos claro/escuro equivalentes;
+- superfícies e bordas com a mesma hierarquia;
+- roxo principal `#7B61FF`, azul secundário `#5A8CFF` e verde `#16C7B7`;
+- cards com raio aproximado de 18dp;
+- títulos, eyebrow labels e textos auxiliares seguindo a mesma hierarquia;
+- cabeçalho com título e subtítulo por módulo;
+- navegação inferior adaptada ao uso mobile;
+- telas de Dashboard, Lançamentos, Planejamento, Carteira, Família, Compras, Calendário, Relatórios e Configurações alinhadas visualmente ao site;
+- login Android usando a mesma composição e mensagem do login web;
+- dimensões específicas para telas `sw600dp` para evitar apenas esticar o layout de telefone.
 
 ## Compatibilidade com o site
 
