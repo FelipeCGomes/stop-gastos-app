@@ -33,6 +33,72 @@ jobs:
       - name: Make Gradle wrapper executable
         run: chmod +x gradlew
 
+      - name: Validate adaptive layout IDs
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          checks = {
+              "fragment_settings.xml": [
+                  "settings_theme_group","settings_theme_system","settings_theme_light",
+                  "settings_theme_dark","settings_show_positive_values","settings_user",
+                  "settings_enable_notifications","settings_disable_notifications",
+                  "settings_sign_out","settings_delete_account","settings_status"
+              ],
+              "fragment_dashboard.xml": [
+                  "dashboard_greeting","dashboard_hint","dashboard_alert_icon","dashboard_alert_text",
+                  "dashboard_income","dashboard_income_delta","dashboard_expense",
+                  "dashboard_expense_delta","dashboard_balance","dashboard_savings",
+                  "dashboard_daily","dashboard_projection","dashboard_health_title",
+                  "dashboard_health_detail","dashboard_health_score","dashboard_health_progress",
+                  "dashboard_trend_chart","dashboard_empty","dashboard_recycler",
+                  "dashboard_add_recurring","dashboard_open_reports"
+              ],
+              "fragment_transactions.xml": [
+                  "transactions_search","transactions_type_filter","transactions_add",
+                  "transactions_income","transactions_expense","transactions_balance",
+                  "transactions_count","transactions_recycler"
+              ],
+              "fragment_shopping.xml": [
+                  "shopping_list_spinner","shopping_add_list","shopping_edit_list",
+                  "shopping_add_item","shopping_delete_list","shopping_comparison","shopping_recycler"
+              ],
+              "fragment_family.xml": [
+                  "family_title","family_status","family_mode","family_primary_action",
+                  "family_secondary_action","family_recycler","family_leave"
+              ],
+              "fragment_calendar.xml": [
+                  "calendar_previous","calendar_month","calendar_next",
+                  "calendar_summary","calendar_recycler"
+              ],
+              "fragment_module.xml": [
+                  "module_title","module_subtitle","module_spinner","module_add","module_recycler"
+              ],
+              "fragment_reports.xml": [
+                  "report_previous","report_month","report_next","report_summary",
+                  "report_chart","report_empty","report_export","report_recycler"
+              ],
+          }
+
+          base = Path("app/src/main/res/layout-w600dp")
+          failed = []
+          for filename, ids in checks.items():
+              path = base / filename
+              if not path.exists():
+                  failed.append(f"{filename}: missing adaptive layout")
+                  continue
+              text = path.read_text(encoding="utf-8")
+              for view_id in ids:
+                  if f'@+id/{view_id}' not in text:
+                      failed.append(f"{filename}: missing {view_id}")
+
+          if failed:
+              print("\n".join(failed))
+              raise SystemExit(1)
+
+          print(f"Adaptive layouts OK: {len(checks)} screens")
+          PY
+
       - name: Run Java unit tests
         run: ./gradlew :app:testDebugUnitTest --stacktrace
 
