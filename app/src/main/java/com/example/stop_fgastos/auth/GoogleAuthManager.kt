@@ -16,7 +16,7 @@ import kotlinx.coroutines.tasks.await
 object GoogleAuthManager {
 
     fun isConfigured(activity: Activity): Boolean {
-        val clientId = activity.getString(R.string.default_web_client_id)
+        val clientId = resolveClientId(activity)
         return clientId.isNotBlank() && !clientId.startsWith("REPLACE_WITH_")
     }
 
@@ -39,7 +39,7 @@ object GoogleAuthManager {
     }
 
     private suspend fun googleFirebaseCredential(activity: Activity): AuthCredential {
-        val clientId = activity.getString(R.string.default_web_client_id)
+        val clientId = resolveClientId(activity)
 
         check(isConfigured(activity)) {
             "Registre o aplicativo Android no Firebase, configure o SHA e use o Web/Server Client ID oficial."
@@ -68,6 +68,26 @@ object GoogleAuthManager {
 
         val googleCredential = GoogleIdTokenCredential.createFrom(credential.data)
         return GoogleAuthProvider.getCredential(googleCredential.idToken, null)
+    }
+
+    private fun resolveClientId(activity: Activity): String {
+        val generatedId = activity.resources.getIdentifier(
+            "default_web_client_id",
+            "string",
+            activity.packageName
+        )
+
+        val generated = if (generatedId != 0) {
+            runCatching { activity.getString(generatedId) }.getOrDefault("")
+        } else {
+            ""
+        }
+
+        if (generated.isNotBlank() && !generated.startsWith("REPLACE_WITH_")) {
+            return generated
+        }
+
+        return activity.getString(R.string.firebase_web_client_id_override)
     }
 
     fun signOut() {
