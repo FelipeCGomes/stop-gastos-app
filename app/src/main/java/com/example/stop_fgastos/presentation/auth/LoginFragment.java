@@ -21,7 +21,6 @@ import com.example.stop_fgastos.presentation.main.MainViewModel;
 import com.google.android.gms.auth.api.signin.GoogleSignIn;
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
 import com.google.android.gms.auth.api.signin.GoogleSignInClient;
-import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
 import com.google.android.gms.common.api.ApiException;
 import com.google.android.material.button.MaterialButton;
 
@@ -84,8 +83,7 @@ public final class LoginFragment extends Fragment {
             return;
         }
 
-        String clientId = resolveClientId();
-        boolean configured = !clientId.isBlank() && !clientId.startsWith("REPLACE_WITH_");
+        boolean configured = GoogleAuthUi.configured(requireContext());
         button.setEnabled(configured);
 
         if (!configured) {
@@ -95,29 +93,7 @@ public final class LoginFragment extends Fragment {
             return;
         }
 
-        GoogleSignInOptions options = new GoogleSignInOptions.Builder(
-                GoogleSignInOptions.DEFAULT_SIGN_IN
-        )
-                .requestIdToken(clientId)
-                .requestEmail()
-                .build();
-
-        googleClient = GoogleSignIn.getClient(requireActivity(), options);
+        googleClient = GoogleAuthUi.client(requireActivity());
         button.setOnClickListener(v -> signInLauncher.launch(googleClient.getSignInIntent()));
-    }
-
-    private String resolveClientId() {
-        int generatedId = getResources().getIdentifier(
-                "default_web_client_id",
-                "string",
-                requireContext().getPackageName()
-        );
-        if (generatedId != 0) {
-            String generated = getString(generatedId);
-            if (!generated.isBlank() && !generated.startsWith("REPLACE_WITH_")) {
-                return generated;
-            }
-        }
-        return getString(R.string.firebase_web_client_id_override);
     }
 }
