@@ -134,3 +134,8 @@ A arquitetura está preparada para receber os demais documentos que já existem 
 - Exclusão de conta e demais configurações
 
 Esses módulos devem seguir o mesmo padrão `users/{uid}/data/{sectionId}` já utilizado pelo site.
+
+
+## Status desta migração
+
+Branch de desenvolvimento: `native-kotlin-java-firebase`. A integração na `main` deve ocorrer somente após o build Android passar no CI e após a configuração do app Android no Firebase.
