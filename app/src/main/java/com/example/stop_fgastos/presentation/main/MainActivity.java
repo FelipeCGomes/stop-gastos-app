@@ -34,6 +34,7 @@ public final class MainActivity extends AppCompatActivity {
     private ImageButton topMenuButton;
     private ImageButton topNotificationsButton;
     private TextView topTitle;
+    private TextView topSubtitle;
     private View bottomNavigation;
     private ImageButton addButton;
 
@@ -75,6 +76,7 @@ public final class MainActivity extends AppCompatActivity {
         topMenuButton = findViewById(R.id.top_menu_button);
         topNotificationsButton = findViewById(R.id.top_notifications_button);
         topTitle = findViewById(R.id.top_title);
+        topSubtitle = findViewById(R.id.top_subtitle);
         bottomNavigation = findViewById(R.id.bottom_navigation_container);
         addButton = findViewById(R.id.nav_add);
 
@@ -139,6 +141,7 @@ public final class MainActivity extends AppCompatActivity {
 
             if (!login) {
                 topTitle.setText(titleFor(id, destination.getLabel()));
+                topSubtitle.setText(subtitleFor(id));
                 if (primary) {
                     topMenuButton.setImageResource(R.drawable.ic_menu);
                     topMenuButton.setContentDescription("Abrir menu");
@@ -264,6 +267,19 @@ public final class MainActivity extends AppCompatActivity {
         text.setTypeface(null, active
                 ? android.graphics.Typeface.BOLD
                 : android.graphics.Typeface.NORMAL);
+    }
+
+    private String subtitleFor(int id) {
+        if (id == R.id.dashboardFragment) return "Visão geral das suas finanças";
+        if (id == R.id.transactionsFragment) return "Receitas, despesas e movimentações";
+        if (id == R.id.familyFragment) return "Membros, convites e dados compartilhados";
+        if (id == R.id.shoppingFragment) return "Listas, preços e comparação de mercados";
+        if (id == R.id.planningFragment) return "Fixos, rendas, contas, orçamentos e metas";
+        if (id == R.id.walletFragment) return "Contas, cartões, benefícios e transferências";
+        if (id == R.id.calendarFragment) return "Agenda de vencimentos e movimentações";
+        if (id == R.id.reportsFragment) return "Análise mensal e categorias";
+        if (id == R.id.settingsFragment) return "Conta, aparência, notificações e segurança";
+        return "Stop Gastos";
     }
 
     private String titleFor(int id, CharSequence fallback) {
