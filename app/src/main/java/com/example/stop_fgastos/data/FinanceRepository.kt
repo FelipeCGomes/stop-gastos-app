@@ -1,10 +1,17 @@
 package com.example.stop_fgastos.data
 
+import com.example.stop_fgastos.model.AccountRecord
+import com.example.stop_fgastos.model.BillRecord
+import com.example.stop_fgastos.model.BudgetRecord
 import com.example.stop_fgastos.model.CardRecord
+import com.example.stop_fgastos.model.CategoryRecord
 import com.example.stop_fgastos.model.FinanceState
+import com.example.stop_fgastos.model.GoalRecord
 import com.example.stop_fgastos.model.IncomeSourceRecord
 import com.example.stop_fgastos.model.RecurringRecord
+import com.example.stop_fgastos.model.ShoppingListRecord
 import com.example.stop_fgastos.model.TransactionRecord
+import com.example.stop_fgastos.model.TransferRecord
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
@@ -16,7 +23,7 @@ class FinanceRepository {
     private val db = FirebaseFirestore.getInstance()
     private var uid: String = ""
     private var state = FinanceState()
-    private var listeners: MutableList<ListenerRegistration> = mutableListOf()
+    private val listeners: MutableList<ListenerRegistration> = mutableListOf()
     private var stateCallback: ((FinanceState) -> Unit)? = null
     private var errorCallback: ((Throwable) -> Unit)? = null
 
@@ -40,8 +47,29 @@ class FinanceRepository {
         listeners += listenSection("cards") { values ->
             state = state.copy(cards = values.map(CardRecord::fromMap))
         }
+        listeners += listenSection("accounts") { values ->
+            state = state.copy(accounts = values.map(AccountRecord::fromMap))
+        }
         listeners += listenSection("incomeSources") { values ->
             state = state.copy(incomeSources = values.map(IncomeSourceRecord::fromMap))
+        }
+        listeners += listenSection("bills") { values ->
+            state = state.copy(bills = values.map(BillRecord::fromMap))
+        }
+        listeners += listenSection("transfers") { values ->
+            state = state.copy(transfers = values.map(TransferRecord::fromMap))
+        }
+        listeners += listenSection("budgets") { values ->
+            state = state.copy(budgets = values.map(BudgetRecord::fromMap))
+        }
+        listeners += listenSection("goals") { values ->
+            state = state.copy(goals = values.map(GoalRecord::fromMap))
+        }
+        listeners += listenSection("categories") { values ->
+            state = state.copy(categories = values.map(CategoryRecord::fromMap))
+        }
+        listeners += listenSection("shoppingLists") { values ->
+            state = state.copy(shoppingLists = values.map(ShoppingListRecord::fromMap))
         }
     }
 
@@ -59,9 +87,7 @@ class FinanceRepository {
     ) {
         mutateList("transactions", { list ->
             records.forEach { record ->
-                val index = list.indexOfFirst { it["id"]?.toString() == record.id }
-                if (index >= 0) list[index] = record.toMap().toMutableMap()
-                else list.add(record.toMap().toMutableMap())
+                upsertInMemory(list, record.id, record.toMap())
             }
         }, onResult)
     }
@@ -71,51 +97,73 @@ class FinanceRepository {
         records: List<TransactionRecord>,
         onResult: (Result<Unit>) -> Unit
     ) {
-        if (uid.isBlank()) {
-            onResult(Result.failure(IllegalStateException("Usuário não autenticado.")))
-            return
-        }
-
-        val recurringRef = sectionRef("recurring")
-        val transactionsRef = sectionRef("transactions")
-
-        db.runTransaction { transaction ->
-            val recurringList = mutableMaps(transaction.get(recurringRef))
-            val recurringIndex = recurringList.indexOfFirst { it["id"]?.toString() == recurring.id }
-            if (recurringIndex >= 0) recurringList[recurringIndex] = recurring.toMap().toMutableMap()
-            else recurringList.add(recurring.toMap().toMutableMap())
-
-            val transactionList = mutableMaps(transaction.get(transactionsRef))
-            records.forEach { record ->
-                val index = transactionList.indexOfFirst { it["id"]?.toString() == record.id }
-                if (index >= 0) transactionList[index] = record.toMap().toMutableMap()
-                else transactionList.add(record.toMap().toMutableMap())
-            }
-
-            transaction.set(
-                recurringRef,
-                mapOf("value" to recurringList, "updatedAt" to FieldValue.serverTimestamp()),
-                SetOptions.merge()
-            )
-            transaction.set(
-                transactionsRef,
-                mapOf("value" to transactionList, "updatedAt" to FieldValue.serverTimestamp()),
-                SetOptions.merge()
-            )
-        }.addOnSuccessListener {
-            onResult(Result.success(Unit))
-        }.addOnFailureListener {
-            onResult(Result.failure(it))
-        }
+        mutateTwoSections(
+            firstSection = "recurring",
+            secondSection = "transactions",
+            firstMutation = { list -> upsertInMemory(list, recurring.id, recurring.toMap()) },
+            secondMutation = { list ->
+                records.forEach { record -> upsertInMemory(list, record.id, record.toMap()) }
+            },
+            onResult = onResult
+        )
     }
 
-    fun upsertCard(card: CardRecord, onResult: (Result<Unit>) -> Unit) {
-        mutateList("cards", { list ->
-            val index = list.indexOfFirst { it["id"]?.toString() == card.id }
-            if (index >= 0) list[index] = card.toMap().toMutableMap()
-            else list.add(card.toMap().toMutableMap())
-        }, onResult)
+    fun upsertCard(card: CardRecord, onResult: (Result<Unit>) -> Unit) =
+        upsertRecord("cards", card.id, card.toMap(), onResult)
+
+    fun upsertAccount(account: AccountRecord, onResult: (Result<Unit>) -> Unit) =
+        upsertRecord("accounts", account.id, account.toMap(), onResult)
+
+    fun upsertIncomeSource(source: IncomeSourceRecord, onResult: (Result<Unit>) -> Unit) =
+        upsertRecord("incomeSources", source.id, source.toMap(), onResult)
+
+    fun saveIncomeSourceWithTransactions(
+        source: IncomeSourceRecord,
+        records: List<TransactionRecord>,
+        onResult: (Result<Unit>) -> Unit
+    ) {
+        mutateTwoSections(
+            firstSection = "incomeSources",
+            secondSection = "transactions",
+            firstMutation = { list -> upsertInMemory(list, source.id, source.toMap()) },
+            secondMutation = { list ->
+                records.forEach { record -> upsertInMemory(list, record.id, record.toMap()) }
+            },
+            onResult = onResult
+        )
     }
+
+    fun upsertBill(bill: BillRecord, onResult: (Result<Unit>) -> Unit) =
+        upsertRecord("bills", bill.id, bill.toMap(), onResult)
+
+    fun saveBillWithTransaction(
+        bill: BillRecord,
+        transaction: TransactionRecord,
+        onResult: (Result<Unit>) -> Unit
+    ) {
+        mutateTwoSections(
+            firstSection = "bills",
+            secondSection = "transactions",
+            firstMutation = { list -> upsertInMemory(list, bill.id, bill.toMap()) },
+            secondMutation = { list -> upsertInMemory(list, transaction.id, transaction.toMap()) },
+            onResult = onResult
+        )
+    }
+
+    fun upsertTransfer(transfer: TransferRecord, onResult: (Result<Unit>) -> Unit) =
+        upsertRecord("transfers", transfer.id, transfer.toMap(), onResult)
+
+    fun upsertBudget(budget: BudgetRecord, onResult: (Result<Unit>) -> Unit) =
+        upsertRecord("budgets", budget.id, budget.toMap(), onResult)
+
+    fun upsertGoal(goal: GoalRecord, onResult: (Result<Unit>) -> Unit) =
+        upsertRecord("goals", goal.id, goal.toMap(), onResult)
+
+    fun upsertCategory(category: CategoryRecord, onResult: (Result<Unit>) -> Unit) =
+        upsertRecord("categories", category.id, category.toMap(), onResult)
+
+    fun upsertShoppingList(list: ShoppingListRecord, onResult: (Result<Unit>) -> Unit) =
+        upsertRecord("shoppingLists", list.id, list.toMap(), onResult)
 
     fun deleteTransaction(record: TransactionRecord, onResult: (Result<Unit>) -> Unit) {
         mutateList("transactions", { list ->
@@ -127,16 +175,78 @@ class FinanceRepository {
         }, onResult)
     }
 
-    fun deleteRecurring(record: RecurringRecord, onResult: (Result<Unit>) -> Unit) {
-        mutateList("recurring", { list ->
-            list.removeAll { it["id"]?.toString() == record.id }
+    fun deleteRecurring(record: RecurringRecord, onResult: (Result<Unit>) -> Unit) =
+        deleteRecord("recurring", record.id, onResult)
+
+    fun deleteCard(record: CardRecord, onResult: (Result<Unit>) -> Unit) =
+        deleteRecord("cards", record.id, onResult)
+
+    fun deleteAccount(record: AccountRecord, onResult: (Result<Unit>) -> Unit) {
+        mutateTwoSections(
+            firstSection = "accounts",
+            secondSection = "cards",
+            firstMutation = { list ->
+                list.removeAll { it["id"]?.toString() == record.id }
+            },
+            secondMutation = { list ->
+                list.forEach { card ->
+                    if (card["accountId"]?.toString() == record.id) {
+                        card["accountId"] = ""
+                    }
+                }
+            },
+            onResult = onResult
+        )
+    }
+
+    fun deleteIncomeSource(record: IncomeSourceRecord, onResult: (Result<Unit>) -> Unit) =
+        deleteRecord("incomeSources", record.id, onResult)
+
+    fun deleteBill(record: BillRecord, onResult: (Result<Unit>) -> Unit) =
+        deleteRecord("bills", record.id, onResult)
+
+    fun deleteTransfer(record: TransferRecord, onResult: (Result<Unit>) -> Unit) =
+        deleteRecord("transfers", record.id, onResult)
+
+    fun deleteBudget(record: BudgetRecord, onResult: (Result<Unit>) -> Unit) =
+        deleteRecord("budgets", record.id, onResult)
+
+    fun deleteGoal(record: GoalRecord, onResult: (Result<Unit>) -> Unit) =
+        deleteRecord("goals", record.id, onResult)
+
+    fun deleteCategory(record: CategoryRecord, onResult: (Result<Unit>) -> Unit) =
+        deleteRecord("categories", record.id, onResult)
+
+    fun deleteShoppingList(record: ShoppingListRecord, onResult: (Result<Unit>) -> Unit) =
+        deleteRecord("shoppingLists", record.id, onResult)
+
+    private fun upsertRecord(
+        section: String,
+        id: String,
+        map: Map<String, Any?>,
+        onResult: (Result<Unit>) -> Unit
+    ) {
+        mutateList(section, { list -> upsertInMemory(list, id, map) }, onResult)
+    }
+
+    private fun deleteRecord(
+        section: String,
+        id: String,
+        onResult: (Result<Unit>) -> Unit
+    ) {
+        mutateList(section, { list ->
+            list.removeAll { it["id"]?.toString() == id }
         }, onResult)
     }
 
-    fun deleteCard(record: CardRecord, onResult: (Result<Unit>) -> Unit) {
-        mutateList("cards", { list ->
-            list.removeAll { it["id"]?.toString() == record.id }
-        }, onResult)
+    private fun upsertInMemory(
+        list: MutableList<MutableMap<String, Any?>>,
+        id: String,
+        map: Map<String, Any?>
+    ) {
+        val index = list.indexOfFirst { it["id"]?.toString() == id }
+        if (index >= 0) list[index] = map.toMutableMap()
+        else list.add(map.toMutableMap())
     }
 
     private fun sectionRef(section: String) =
@@ -177,6 +287,45 @@ class FinanceRepository {
             transaction.set(
                 ref,
                 mapOf("value" to list, "updatedAt" to FieldValue.serverTimestamp()),
+                SetOptions.merge()
+            )
+        }.addOnSuccessListener {
+            onResult(Result.success(Unit))
+        }.addOnFailureListener {
+            onResult(Result.failure(it))
+        }
+    }
+
+    private fun mutateTwoSections(
+        firstSection: String,
+        secondSection: String,
+        firstMutation: (MutableList<MutableMap<String, Any?>>) -> Unit,
+        secondMutation: (MutableList<MutableMap<String, Any?>>) -> Unit,
+        onResult: (Result<Unit>) -> Unit
+    ) {
+        if (uid.isBlank()) {
+            onResult(Result.failure(IllegalStateException("Usuário não autenticado.")))
+            return
+        }
+
+        val firstRef = sectionRef(firstSection)
+        val secondRef = sectionRef(secondSection)
+
+        db.runTransaction { transaction ->
+            val firstList = mutableMaps(transaction.get(firstRef))
+            val secondList = mutableMaps(transaction.get(secondRef))
+
+            firstMutation(firstList)
+            secondMutation(secondList)
+
+            transaction.set(
+                firstRef,
+                mapOf("value" to firstList, "updatedAt" to FieldValue.serverTimestamp()),
+                SetOptions.merge()
+            )
+            transaction.set(
+                secondRef,
+                mapOf("value" to secondList, "updatedAt" to FieldValue.serverTimestamp()),
                 SetOptions.merge()
             )
         }.addOnSuccessListener {
