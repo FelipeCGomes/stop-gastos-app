@@ -47,6 +47,15 @@ Além da base inicial, o Android agora também possui telas e gravação nativa 
 - Lista de compras pessoal
 - Itens, quantidade, valor unitário e total da lista
 - Navegação reorganizada em Início, Lançamentos, Planejar, Carteira e Mais
+- Família com administrador, membros e estados pending/active/declined
+- Diretório de usuários por SHA-256 do e-mail compatível com o web
+- Convites familiares por e-mail
+- Aceite e recusa de convites
+- Badge interno de convites em tempo real
+- Lista de compras familiar compartilhada
+- Membros, listas e itens familiares atualizados em tempo real
+- Calendário financeiro derivado de lançamentos e contas previstas
+- Relatórios mensais com receitas, despesas, saldo, taxa de economia, categorias e histórico de 6 meses
 
 Os novos módulos continuam usando exatamente os documentos modulares do web:
 `accounts`, `incomeSources`, `bills`, `transfers`, `budgets`, `goals`, `categories` e `shoppingLists`.
@@ -139,10 +148,9 @@ app/src/main/java/com/example/stop_fgastos/
 
 A arquitetura está preparada para receber os demais documentos que já existem no Firestore:
 
-- Calendário financeiro
-- Relatórios e gráficos avançados
-- Lista de compras familiar
-- Família, membros e convites
+- Edição completa de todos os módulos já transportados
+- Comparação avançada entre mercados da lista de compras
+- Gráficos avançados e exportação de relatórios
 - Notificações
 - Exclusão de conta e demais configurações
 
