@@ -2,12 +2,16 @@ package com.example.stop_fgastos.viewmodel
 
 import androidx.lifecycle.ViewModel
 import com.example.stop_fgastos.auth.GoogleAuthManager
+import com.example.stop_fgastos.data.FamilyRepository
 import com.example.stop_fgastos.data.FinanceRepository
 import com.example.stop_fgastos.model.AccountRecord
 import com.example.stop_fgastos.model.BillRecord
 import com.example.stop_fgastos.model.BudgetRecord
 import com.example.stop_fgastos.model.CardRecord
 import com.example.stop_fgastos.model.CategoryRecord
+import com.example.stop_fgastos.model.FamilyInvitationRecord
+import com.example.stop_fgastos.model.FamilyMemberRecord
+import com.example.stop_fgastos.model.FamilyState
 import com.example.stop_fgastos.model.FinanceState
 import com.example.stop_fgastos.model.GoalRecord
 import com.example.stop_fgastos.model.IncomeSourceRecord
@@ -32,6 +36,7 @@ data class MainUiState(
     val userName: String = "",
     val userEmail: String = "",
     val finance: FinanceState = FinanceState(),
+    val family: FamilyState = FamilyState(),
     val syncMessage: String = "Local",
     val error: String = ""
 )
@@ -40,6 +45,7 @@ class MainViewModel : ViewModel() {
 
     private val auth = FirebaseAuth.getInstance()
     private val repository = FinanceRepository()
+    private val familyRepository = FamilyRepository()
 
     private val _uiState = MutableStateFlow(MainUiState())
     val uiState: StateFlow<MainUiState> = _uiState.asStateFlow()
@@ -54,6 +60,7 @@ class MainViewModel : ViewModel() {
 
     fun signOut() {
         repository.stop()
+        familyRepository.stop()
         GoogleAuthManager.signOut()
         _uiState.value = MainUiState(loading = false)
     }
@@ -450,6 +457,46 @@ class MainViewModel : ViewModel() {
     fun deleteShoppingList(record: ShoppingListRecord) =
         runWrite { callback -> repository.deleteShoppingList(record, callback) }
 
+    fun refreshFamily() {
+        familyRepository.refresh()
+    }
+
+    fun createFamily(name: String) =
+        runWrite { callback -> familyRepository.createFamily(name, callback) }
+
+    fun inviteFamilyMember(email: String) =
+        runWrite { callback -> familyRepository.sendInviteByEmail(email, callback) }
+
+    fun respondFamilyInvitation(invitation: FamilyInvitationRecord, accept: Boolean) =
+        runWrite { callback -> familyRepository.respondInvitation(invitation, accept, callback) }
+
+    fun removeFamilyMember(member: FamilyMemberRecord) =
+        runWrite { callback -> familyRepository.removeMember(member, callback) }
+
+    fun createSharedShoppingList(name: String, store: String) =
+        runWrite { callback -> familyRepository.createSharedList(name, store, callback) }
+
+    fun loadSharedShoppingItems(listId: String) {
+        familyRepository.loadSharedItems(listId) { result ->
+            result.onFailure { setError(it) }
+        }
+    }
+
+    fun addSharedShoppingItem(
+        listId: String,
+        product: String,
+        qty: Double,
+        unitPrice: Double
+    ) = runWrite { callback ->
+        familyRepository.addSharedItem(listId, product, qty, unitPrice, callback)
+    }
+
+    fun deleteSharedShoppingItem(listId: String, itemId: String) =
+        runWrite { callback -> familyRepository.deleteSharedItem(listId, itemId, callback) }
+
+    fun deleteSharedShoppingList(listId: String) =
+        runWrite { callback -> familyRepository.deleteSharedList(listId, callback) }
+
     private fun attachUser(user: FirebaseUser) {
         _uiState.value = MainUiState(
             signedIn = true,
@@ -467,6 +514,17 @@ class MainViewModel : ViewModel() {
                     loading = false,
                     finance = finance,
                     syncMessage = "Sincronizado",
+                    error = ""
+                )
+            },
+            onError = { setError(it) }
+        )
+
+        familyRepository.start(
+            user = user,
+            onState = { family ->
+                _uiState.value = _uiState.value.copy(
+                    family = family,
                     error = ""
                 )
             },
@@ -581,6 +639,7 @@ class MainViewModel : ViewModel() {
 
     override fun onCleared() {
         repository.stop()
+        familyRepository.stop()
         super.onCleared()
     }
 }
