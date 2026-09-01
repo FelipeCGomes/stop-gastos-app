@@ -182,12 +182,18 @@ private fun NativeFixedCosts(finance: FinanceState, viewModel: MainViewModel) {
                 editorOpen = false
                 editing = null
             },
-            onSave = { description, amount, day, category, payment, cardId, installments ->
+            onSave = { description, amount, day, category, payment, cardId, installments, kind, active ->
                 val current = editing
                 if (current == null) {
-                    viewModel.addFixedCost(description, amount, day, category, payment, cardId, installments)
+                    viewModel.addFixedCost(
+                        description, amount, day, category, payment, cardId,
+                        installments, kind, active
+                    )
                 } else {
-                    viewModel.updateFixedCost(current, description, amount, day, category, payment, cardId, installments)
+                    viewModel.updateFixedCost(
+                        current, description, amount, day, category, payment, cardId,
+                        installments, kind, active
+                    )
                 }
                 editorOpen = false
                 editing = null
@@ -242,10 +248,7 @@ private fun IncomeSourcesScreen(finance: FinanceState, viewModel: MainViewModel)
             onSave = { kind, description, amount, day, accountId, active ->
                 val current = editing
                 if (current == null) {
-                    viewModel.addIncomeSource(kind, description, amount, day, accountId)
-                    if (!active) {
-                        // A criação padrão é ativa; ao abrir para edição o usuário pode pausar.
-                    }
+                    viewModel.addIncomeSource(kind, description, amount, day, accountId, active)
                 } else {
                     viewModel.updateIncomeSource(current, kind, description, amount, day, accountId, active)
                 }
@@ -528,10 +531,10 @@ private fun AccountsScreen(finance: FinanceState, viewModel: MainViewModel) {
                 editorOpen = false
                 editing = null
             },
-            onSave = { name, type, opening, icon ->
+            onSave = { name, type, opening, icon, color ->
                 val current = editing
-                if (current == null) viewModel.addAccount(name, type, opening, icon)
-                else viewModel.updateAccount(current, name, type, opening, icon)
+                if (current == null) viewModel.addAccount(name, type, opening, icon, color)
+                else viewModel.updateAccount(current, name, type, opening, icon, color)
                 editorOpen = false
                 editing = null
             }
@@ -584,15 +587,19 @@ private fun NativeCards(finance: FinanceState, viewModel: MainViewModel) {
 
     if (editorOpen) {
         CardEditorDialog(
+            finance = finance,
             initial = editing,
             onDismiss = {
                 editorOpen = false
                 editing = null
             },
-            onSave = { name, type, brand, limit, closing, due ->
+            onSave = { name, type, brand, limit, closing, due, accountId, color ->
                 val current = editing
-                if (current == null) viewModel.addCard(name, type, brand, limit, closing, due)
-                else viewModel.updateCard(current, name, type, brand, limit, closing, due)
+                if (current == null) {
+                    viewModel.addCard(name, type, brand, limit, closing, due, accountId, color)
+                } else {
+                    viewModel.updateCard(current, name, type, brand, limit, closing, due, accountId, color)
+                }
                 editorOpen = false
                 editing = null
             }
@@ -703,10 +710,10 @@ private fun CategoriesScreen(finance: FinanceState, viewModel: MainViewModel) {
                 editorOpen = false
                 editing = null
             },
-            onSave = { name, icon, group ->
+            onSave = { name, icon, group, color ->
                 val current = editing
-                if (current == null) viewModel.addCategory(name, icon, group)
-                else viewModel.updateCategory(current, name, icon, group)
+                if (current == null) viewModel.addCategory(name, icon, group, color)
+                else viewModel.updateCategory(current, name, icon, group, color)
                 editorOpen = false
                 editing = null
             }
