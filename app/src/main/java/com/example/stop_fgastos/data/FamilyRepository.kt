@@ -72,6 +72,7 @@ class FamilyRepository {
             profileResult.onFailure(::emitError)
             profileResult.onSuccess { profile ->
                 if (profile.familyId.isBlank()) {
+                    clearContextListeners()
                     state = state.copy(
                         profile = profile,
                         family = null,
@@ -818,6 +819,7 @@ class FamilyRepository {
 
     private fun clearOwnFamilyLink() {
         val current = user ?: return
+        clearContextListeners()
         profileRef(current.uid).set(
             mapOf(
                 "familyId" to "",
@@ -834,6 +836,15 @@ class FamilyRepository {
             )
             notifyState()
         }.addOnFailureListener(::emitError)
+    }
+
+    private fun clearContextListeners() {
+        membersListener?.remove()
+        sharedListsListener?.remove()
+        sharedItemsListener?.remove()
+        membersListener = null
+        sharedListsListener = null
+        sharedItemsListener = null
     }
 
     private fun profileRef(uid: String) =
