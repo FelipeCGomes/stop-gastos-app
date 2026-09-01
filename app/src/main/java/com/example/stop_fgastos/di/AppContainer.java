@@ -17,6 +17,7 @@ import com.example.stop_fgastos.domain.usecase.FinanceSummaryUseCase;
 import com.example.stop_fgastos.domain.usecase.ManageFinanceUseCase;
 import com.example.stop_fgastos.domain.usecase.NotificationUseCase;
 import com.example.stop_fgastos.domain.usecase.ObserveFinanceUseCase;
+import com.example.stop_fgastos.domain.usecase.PayBillUseCase;
 import com.example.stop_fgastos.domain.usecase.RecurringUseCase;
 import com.example.stop_fgastos.domain.usecase.ReportUseCase;
 import com.example.stop_fgastos.domain.usecase.SaveTransactionUseCase;
@@ -34,6 +35,7 @@ public final class AppContainer {
     public final ShoppingComparisonUseCase shoppingComparison;
     public final FamilyUseCase family;
     public final NotificationUseCase notifications;
+    public final PayBillUseCase payBill;
     public final ReportUseCase reports;
     public final DeleteAccountUseCase deleteAccount;
 
@@ -59,6 +61,7 @@ public final class AppContainer {
         shoppingComparison = new ShoppingComparisonUseCase();
         family = new FamilyUseCase(familyRepository);
         notifications = new NotificationUseCase(notificationRepository);
+        payBill = new PayBillUseCase(financeRepository);
         reports = new ReportUseCase();
         deleteAccount = new DeleteAccountUseCase(
                 authRepository,
