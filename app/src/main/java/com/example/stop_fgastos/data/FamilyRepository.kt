@@ -13,6 +13,7 @@ import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.SetOptions
+import kotlinx.coroutines.tasks.await
 import java.security.MessageDigest
 import java.util.Date
 import java.util.Locale
@@ -591,6 +592,333 @@ class FamilyRepository {
                     .addOnFailureListener { onResult(Result.failure(it)) }
             }
             .addOnFailureListener { onResult(Result.failure(it)) }
+    }
+
+    fun transferOwnership(
+        target: FamilyMemberRecord,
+        onResult: (Result<Unit>) -> Unit
+    ) {
+        val current = user
+            ?: return onResult(Result.failure(IllegalStateException("Usuário não autenticado.")))
+        val family = state.family
+            ?: return onResult(Result.failure(IllegalStateException("Você não participa de uma família.")))
+
+        if (family.ownerUid != current.uid || !state.isAdmin) {
+            onResult(Result.failure(IllegalStateException("Somente o proprietário atual pode transferir a administração.")))
+            return
+        }
+        if (target.uid == current.uid) {
+            onResult(Result.failure(IllegalArgumentException("Você já é o administrador da família.")))
+            return
+        }
+        if (target.status != "active") {
+            onResult(Result.failure(IllegalArgumentException("A administração só pode ser transferida para um membro ativo.")))
+            return
+        }
+
+        val batch = db.batch()
+        batch.set(
+            profileRef(target.uid),
+            mapOf(
+                "familyId" to family.id,
+                "role" to "admin",
+                "updatedAt" to FieldValue.serverTimestamp()
+            ),
+            SetOptions.merge()
+        )
+        batch.set(
+            db.collection("families").document(family.id)
+                .collection("members").document(target.uid),
+            mapOf(
+                "role" to "admin",
+                "promotedAt" to FieldValue.serverTimestamp(),
+                "updatedAt" to FieldValue.serverTimestamp()
+            ),
+            SetOptions.merge()
+        )
+        batch.set(
+            profileRef(current.uid),
+            mapOf(
+                "familyId" to family.id,
+                "role" to "member",
+                "updatedAt" to FieldValue.serverTimestamp()
+            ),
+            SetOptions.merge()
+        )
+        batch.set(
+            db.collection("families").document(family.id)
+                .collection("members").document(current.uid),
+            mapOf(
+                "role" to "member",
+                "updatedAt" to FieldValue.serverTimestamp()
+            ),
+            SetOptions.merge()
+        )
+        batch.set(
+            db.collection("families").document(family.id),
+            mapOf(
+                "ownerUid" to target.uid,
+                "updatedAt" to FieldValue.serverTimestamp()
+            ),
+            SetOptions.merge()
+        )
+
+        batch.commit()
+            .addOnSuccessListener {
+                refresh()
+                onResult(Result.success(Unit))
+            }
+            .addOnFailureListener { onResult(Result.failure(it)) }
+    }
+
+    fun leaveFamily(onResult: (Result<Unit>) -> Unit) {
+        val current = user
+            ?: return onResult(Result.failure(IllegalStateException("Usuário não autenticado.")))
+        val family = state.family
+            ?: return onResult(Result.success(Unit))
+
+        if (family.ownerUid == current.uid) {
+            onResult(
+                Result.failure(
+                    IllegalStateException(
+                        "O proprietário não pode sair da família sem transferir a administração."
+                    )
+                )
+            )
+            return
+        }
+
+        db.collection("families").document(family.id)
+            .collection("members").document(current.uid)
+            .delete()
+            .addOnSuccessListener {
+                profileRef(current.uid).set(
+                    mapOf(
+                        "familyId" to "",
+                        "role" to "",
+                        "updatedAt" to FieldValue.serverTimestamp()
+                    ),
+                    SetOptions.merge()
+                ).addOnSuccessListener {
+                    clearContextListeners()
+                    state = state.copy(
+                        profile = state.profile.copy(familyId = "", role = ""),
+                        family = null,
+                        members = emptyList(),
+                        sharedLists = emptyList()
+                    )
+                    notifyState()
+                    onResult(Result.success(Unit))
+                }.addOnFailureListener { onResult(Result.failure(it)) }
+            }
+            .addOnFailureListener { onResult(Result.failure(it)) }
+    }
+
+    fun updateSharedList(
+        listId: String,
+        name: String,
+        store: String,
+        onResult: (Result<Unit>) -> Unit
+    ) {
+        val current = user
+            ?: return onResult(Result.failure(IllegalStateException("Usuário não autenticado.")))
+        val family = state.family
+            ?: return onResult(Result.failure(IllegalStateException("Família não encontrada.")))
+
+        db.collection("families").document(family.id)
+            .collection("shoppingLists").document(listId)
+            .set(
+                mapOf(
+                    "name" to name.trim(),
+                    "store" to store.trim(),
+                    "updatedBy" to current.uid,
+                    "updatedAt" to FieldValue.serverTimestamp(),
+                    "clientUpdatedAt" to java.time.Instant.now().toString()
+                ),
+                SetOptions.merge()
+            )
+            .addOnSuccessListener { onResult(Result.success(Unit)) }
+            .addOnFailureListener { onResult(Result.failure(it)) }
+    }
+
+    fun updateSharedItem(
+        listId: String,
+        item: ShoppingItemRecord,
+        onResult: (Result<Unit>) -> Unit
+    ) {
+        val current = user
+            ?: return onResult(Result.failure(IllegalStateException("Usuário não autenticado.")))
+        val family = state.family
+            ?: return onResult(Result.failure(IllegalStateException("Família não encontrada.")))
+        val listRef = db.collection("families").document(family.id)
+            .collection("shoppingLists").document(listId)
+
+        listRef.collection("items").document(item.id)
+            .set(
+                mapOf(
+                    "product" to item.product.trim(),
+                    "qty" to item.qty.coerceAtLeast(0.0),
+                    "unitPrice" to item.unitPrice.coerceAtLeast(0.0),
+                    "order" to item.order.coerceAtLeast(0),
+                    "updatedBy" to current.uid,
+                    "updatedByName" to (current.displayName ?: current.email ?: ""),
+                    "updatedAt" to FieldValue.serverTimestamp(),
+                    "clientUpdatedAt" to java.time.Instant.now().toString()
+                ),
+                SetOptions.merge()
+            )
+            .addOnSuccessListener {
+                listRef.set(
+                    mapOf(
+                        "updatedBy" to current.uid,
+                        "updatedAt" to FieldValue.serverTimestamp(),
+                        "clientUpdatedAt" to java.time.Instant.now().toString()
+                    ),
+                    SetOptions.merge()
+                )
+                onResult(Result.success(Unit))
+            }
+            .addOnFailureListener { onResult(Result.failure(it)) }
+    }
+
+    fun loadAllSharedItems(onResult: (Result<Unit>) -> Unit = {}) {
+        val family = state.family
+            ?: return onResult(Result.success(Unit))
+        val lists = state.sharedLists
+        if (lists.isEmpty()) {
+            onResult(Result.success(Unit))
+            return
+        }
+
+        var remaining = lists.size
+        var failed: Throwable? = null
+        val updated = state.sharedLists.associateBy { it.id }.toMutableMap()
+
+        lists.forEach { list ->
+            db.collection("families").document(family.id)
+                .collection("shoppingLists").document(list.id)
+                .collection("items").get()
+                .addOnSuccessListener { snaps ->
+                    val items = snaps.documents.map { doc ->
+                        ShoppingItemRecord(
+                            id = doc.id,
+                            product = doc.getString("product").orEmpty(),
+                            qty = doc.getDouble("qty") ?: 0.0,
+                            unitPrice = doc.getDouble("unitPrice") ?: 0.0,
+                            order = doc.getLong("order")?.toInt() ?: 0,
+                            createdBy = doc.getString("createdBy").orEmpty(),
+                            createdByName = doc.getString("createdByName").orEmpty()
+                        )
+                    }.sortedBy { it.order }
+                    updated[list.id] = list.copy(items = items)
+                }
+                .addOnFailureListener { error ->
+                    failed = failed ?: error
+                }
+                .addOnCompleteListener {
+                    remaining -= 1
+                    if (remaining == 0) {
+                        state = state.copy(
+                            sharedLists = state.sharedLists.map { updated[it.id] ?: it }
+                        )
+                        notifyState()
+                        failed?.let { onResult(Result.failure(it)) }
+                            ?: onResult(Result.success(Unit))
+                    }
+                }
+        }
+    }
+
+    suspend fun deleteCurrentAccount(): Result<Unit> = runCatching {
+        val current = user ?: error("Usuário não autenticado.")
+        val uid = current.uid
+        val email = normalizeEmail(current.email)
+        val family = state.family
+        val otherLinks = state.members.filter { it.uid != uid }
+
+        if (family != null && family.ownerUid == uid && otherLinks.isNotEmpty()) {
+            error(
+                "Você é o proprietário da família e ainda existem outros vínculos. " +
+                    "Remova os vínculos ou transfira a administração antes de excluir a conta."
+            )
+        }
+
+        db.collection("familyRequests")
+            .whereEqualTo("targetUid", uid)
+            .get()
+            .await()
+            .documents
+            .forEach { it.reference.delete().await() }
+
+        if (family != null && family.ownerUid == uid) {
+            db.collection("familyRequests")
+                .whereEqualTo("familyId", family.id)
+                .get()
+                .await()
+                .documents
+                .forEach { it.reference.delete().await() }
+        }
+
+        if (family != null) {
+            if (family.ownerUid == uid) {
+                deleteAllFamilyShoppingData(family.id)
+            }
+
+            db.collection("families").document(family.id)
+                .collection("members").document(uid)
+                .delete()
+                .await()
+
+            if (family.ownerUid == uid) {
+                db.collection("families").document(family.id)
+                    .delete()
+                    .await()
+            }
+        }
+
+        db.collection("users").document(uid)
+            .collection("devices")
+            .get()
+            .await()
+            .documents
+            .forEach { it.reference.delete().await() }
+
+        db.collection("users").document(uid)
+            .collection("data")
+            .get()
+            .await()
+            .documents
+            .forEach { it.reference.delete().await() }
+
+        db.collection("users").document(uid)
+            .collection("state").document("main")
+            .delete()
+            .await()
+
+        profileRef(uid).delete().await()
+
+        if (email.isNotBlank()) {
+            db.collection("userDirectory")
+                .document(emailDirectoryKey(email))
+                .delete()
+                .await()
+        }
+
+        current.delete().await()
+        stop()
+    }
+
+    private suspend fun deleteAllFamilyShoppingData(familyId: String) {
+        val lists = db.collection("families").document(familyId)
+            .collection("shoppingLists")
+            .get()
+            .await()
+
+        for (list in lists.documents) {
+            val items = list.reference.collection("items").get().await()
+            items.documents.forEach { it.reference.delete().await() }
+            list.reference.delete().await()
+        }
     }
 
     private fun watchProfile() {
