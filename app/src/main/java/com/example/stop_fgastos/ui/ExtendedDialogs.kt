@@ -24,6 +24,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
 import com.example.stop_fgastos.model.CardRecord
 import com.example.stop_fgastos.model.CategoryRecord
 import com.example.stop_fgastos.model.FinanceState
@@ -413,7 +414,7 @@ private fun FormDialog(
         onDismissRequest = onDismiss,
         title = { Text(title) },
         text = {
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(androidx.compose.ui.unit.dp(10f))) {
+            LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 item { fields() }
             }
         },
