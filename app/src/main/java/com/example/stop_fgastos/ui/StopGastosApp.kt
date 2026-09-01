@@ -96,15 +96,22 @@ fun StopGastosApp(viewModel: MainViewModel) {
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
-                    Text(
-                        state.syncMessage,
-                        style = MaterialTheme.typography.labelMedium,
-                        color = if (state.syncMessage == "Erro") {
-                            MaterialTheme.colorScheme.error
-                        } else {
-                            MaterialTheme.colorScheme.primary
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        if (state.family.invitations.isNotEmpty()) {
+                            TextButton(onClick = { tab = AppTab.MORE }) {
+                                Text("🔔 " + state.family.invitations.size)
+                            }
                         }
-                    )
+                        Text(
+                            state.syncMessage,
+                            style = MaterialTheme.typography.labelMedium,
+                            color = if (state.syncMessage == "Erro") {
+                                MaterialTheme.colorScheme.error
+                            } else {
+                                MaterialTheme.colorScheme.primary
+                            }
+                        )
+                    }
                 }
             }
         },
