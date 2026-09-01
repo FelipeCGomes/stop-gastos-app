@@ -15,8 +15,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import java.time.LocalDate
 import java.time.YearMonth
-import java.time.ZoneOffset
-import java.time.format.DateTimeFormatter
 import java.util.UUID
 
 data class MainUiState(
@@ -307,7 +305,7 @@ class MainViewModel : ViewModel() {
         month.atDay(day.coerceIn(1, month.lengthOfMonth()))
 
     private fun nowIso(): String =
-        DateTimeFormatter.ISO_INSTANT.format(java.time.Instant.now().atOffset(ZoneOffset.UTC))
+        java.time.Instant.now().toString()
 
     private fun setSyncing() {
         _uiState.value = _uiState.value.copy(syncMessage = "Sincronizando", error = "")
