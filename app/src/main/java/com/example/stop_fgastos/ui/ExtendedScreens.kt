@@ -31,19 +31,33 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.stop_fgastos.model.AccountRecord
 import com.example.stop_fgastos.model.BillRecord
+import com.example.stop_fgastos.model.BudgetRecord
+import com.example.stop_fgastos.model.CardRecord
 import com.example.stop_fgastos.model.CategoryRecord
 import com.example.stop_fgastos.model.FinanceState
+import com.example.stop_fgastos.model.GoalRecord
+import com.example.stop_fgastos.model.IncomeSourceRecord
+import com.example.stop_fgastos.model.RecurringRecord
+import com.example.stop_fgastos.model.ShoppingItemRecord
+import com.example.stop_fgastos.model.ShoppingListRecord
+import com.example.stop_fgastos.model.TransferRecord
 import com.example.stop_fgastos.viewmodel.MainUiState
 import com.example.stop_fgastos.viewmodel.MainViewModel
 import java.time.LocalDate
 import java.time.YearMonth
 
 private enum class PlanningSection(val label: String) {
-    FIXED("Fixos"), INCOME("Rendas"), BILLS("Contas"), BUDGETS("Orçamentos"), GOALS("Metas")
+    FIXED("Fixos"),
+    INCOME("Rendas"),
+    BILLS("Contas"),
+    BUDGETS("Orçamentos"),
+    GOALS("Metas")
 }
 
 private enum class WalletSection(val label: String) {
-    ACCOUNTS("Contas"), CARDS("Cartões"), TRANSFERS("Transferências")
+    ACCOUNTS("Contas"),
+    CARDS("Cartões"),
+    TRANSFERS("Transferências")
 }
 
 private enum class MoreSection(val label: String) {
@@ -58,6 +72,11 @@ private enum class MoreSection(val label: String) {
 @Composable
 fun PlanningHubScreen(finance: FinanceState, viewModel: MainViewModel) {
     var section by remember { mutableStateOf(PlanningSection.FIXED) }
+
+    LaunchedEffect(Unit) {
+        viewModel.ensureRecurringForMonth(YearMonth.now())
+    }
+
     Column(Modifier.fillMaxSize()) {
         HubTabs(PlanningSection.entries.map { it.label }, section.label) { label ->
             section = PlanningSection.entries.first { it.label == label }
@@ -89,7 +108,7 @@ fun WalletHubScreen(finance: FinanceState, viewModel: MainViewModel) {
 
 @Composable
 fun MoreHubScreen(state: MainUiState, viewModel: MainViewModel) {
-    var section by remember { mutableStateOf(MoreSection.CATEGORIES) }
+    var section by remember { mutableStateOf(MoreSection.FAMILY) }
     Column(Modifier.fillMaxSize()) {
         HubTabs(MoreSection.entries.map { it.label }, section.label) { label ->
             section = MoreSection.entries.first { it.label == label }
@@ -98,8 +117,8 @@ fun MoreHubScreen(state: MainUiState, viewModel: MainViewModel) {
             MoreSection.FAMILY -> FamilyScreen(state, viewModel)
             MoreSection.CATEGORIES -> CategoriesScreen(state.finance, viewModel)
             MoreSection.SHOPPING -> ShoppingScreen(state.finance, viewModel)
-            MoreSection.CALENDAR -> FinancialCalendarScreen(state.finance)
-            MoreSection.REPORTS -> FinancialReportsScreen(state.finance)
+            MoreSection.CALENDAR -> FinancialCalendarScreen(state.finance, viewModel)
+            MoreSection.REPORTS -> FinancialReportsScreen(state.finance, viewModel)
             MoreSection.SETTINGS -> NativeAccountSettings(state, viewModel)
         }
     }
@@ -112,326 +131,781 @@ private fun HubTabs(options: List<String>, selected: String, onSelect: (String) 
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         items(options) { label ->
-            FilterChip(selected = label == selected, onClick = { onSelect(label) }, label = { Text(label) })
+            FilterChip(
+                selected = label == selected,
+                onClick = { onSelect(label) },
+                label = { Text(label) }
+            )
         }
     }
 }
 
 @Composable
 private fun NativeFixedCosts(finance: FinanceState, viewModel: MainViewModel) {
-    var showAdd by remember { mutableStateOf(false) }
+    var editorOpen by remember { mutableStateOf(false) }
+    var editing by remember { mutableStateOf<RecurringRecord?>(null) }
     val records = finance.recurring.filter { it.type != "income" }.sortedBy { it.day }
-    ModuleList("Custos fixos", "Despesas recorrentes e assinaturas", "Novo", { showAdd = true }) {
-        if (records.isEmpty()) item { HubEmpty("Nenhum custo fixo cadastrado.") }
-        else items(records, key = { it.id }) { record ->
-            SimpleRecordCard(
-                record.description,
-                "Dia ${record.day} · ${record.payment}" + if (record.installmentCount > 1) " · ${record.installmentCount}x" else "",
-                extendedMoney(record.amount)
-            ) { viewModel.deleteRecurring(record) }
+
+    ModuleList(
+        "Custos fixos",
+        "Despesas recorrentes, assinaturas e séries parceladas",
+        "Novo",
+        {
+            editing = null
+            editorOpen = true
+        }
+    ) {
+        if (records.isEmpty()) {
+            item { HubEmpty("Nenhum custo fixo cadastrado.") }
+        } else {
+            items(records, key = { it.id }) { record ->
+                SimpleRecordCard(
+                    title = record.description,
+                    subtitle = "Dia ${record.day} · ${record.payment}" +
+                        if (record.installmentCount > 1) " · ${record.installmentCount}x" else "",
+                    value = extendedMoney(record.amount),
+                    onEdit = {
+                        editing = record
+                        editorOpen = true
+                    },
+                    onDelete = { viewModel.deleteRecurring(record) }
+                )
+            }
         }
     }
-    if (showAdd) {
-        FixedCostDialog(finance, { showAdd = false }) { description, amount, day, category, payment, cardId, installments ->
-            viewModel.addFixedCost(description, amount, day, category, payment, cardId, installments)
-            showAdd = false
-        }
+
+    if (editorOpen) {
+        FixedCostEditorDialog(
+            finance = finance,
+            initial = editing,
+            onDismiss = {
+                editorOpen = false
+                editing = null
+            },
+            onSave = { description, amount, day, category, payment, cardId, installments ->
+                val current = editing
+                if (current == null) {
+                    viewModel.addFixedCost(description, amount, day, category, payment, cardId, installments)
+                } else {
+                    viewModel.updateFixedCost(current, description, amount, day, category, payment, cardId, installments)
+                }
+                editorOpen = false
+                editing = null
+            }
+        )
     }
 }
 
 @Composable
 private fun IncomeSourcesScreen(finance: FinanceState, viewModel: MainViewModel) {
-    var showAdd by remember { mutableStateOf(false) }
-    ModuleList("Rendas recorrentes", "Salário, renda extra, freelance e outras entradas", "Nova", { showAdd = true }) {
-        if (finance.incomeSources.isEmpty()) item { HubEmpty("Nenhuma renda recorrente cadastrada.") }
-        else items(finance.incomeSources.sortedBy { it.day }, key = { it.id }) { source ->
-            val account = finance.accounts.firstOrNull { it.id == source.accountId }?.name
-            SimpleRecordCard(
-                source.description,
-                "${incomeKindLabel(source.kind)} · dia ${source.day}" + if (!account.isNullOrBlank()) " · $account" else "",
-                "+ " + extendedMoney(source.amount)
-            ) { viewModel.deleteIncomeSource(source) }
+    var editorOpen by remember { mutableStateOf(false) }
+    var editing by remember { mutableStateOf<IncomeSourceRecord?>(null) }
+
+    ModuleList(
+        "Rendas recorrentes",
+        "Salário, renda extra, freelance e outras entradas",
+        "Nova",
+        {
+            editing = null
+            editorOpen = true
+        }
+    ) {
+        if (finance.incomeSources.isEmpty()) {
+            item { HubEmpty("Nenhuma renda recorrente cadastrada.") }
+        } else {
+            items(finance.incomeSources.sortedBy { it.day }, key = { it.id }) { source ->
+                val account = finance.accounts.firstOrNull { it.id == source.accountId }?.name
+                SimpleRecordCard(
+                    title = source.description,
+                    subtitle = "${incomeKindLabel(source.kind)} · dia ${source.day}" +
+                        if (!account.isNullOrBlank()) " · $account" else "" +
+                        if (!source.active) " · pausada" else "",
+                    value = "+ " + extendedMoney(source.amount),
+                    onEdit = {
+                        editing = source
+                        editorOpen = true
+                    },
+                    onDelete = { viewModel.deleteIncomeSource(source) }
+                )
+            }
         }
     }
-    if (showAdd) {
-        IncomeSourceDialog(finance, { showAdd = false }) { kind, description, amount, day, accountId ->
-            viewModel.addIncomeSource(kind, description, amount, day, accountId)
-            showAdd = false
-        }
+
+    if (editorOpen) {
+        IncomeSourceEditorDialog(
+            finance = finance,
+            initial = editing,
+            onDismiss = {
+                editorOpen = false
+                editing = null
+            },
+            onSave = { kind, description, amount, day, accountId, active ->
+                val current = editing
+                if (current == null) {
+                    viewModel.addIncomeSource(kind, description, amount, day, accountId)
+                    if (!active) {
+                        // A criação padrão é ativa; ao abrir para edição o usuário pode pausar.
+                    }
+                } else {
+                    viewModel.updateIncomeSource(current, kind, description, amount, day, accountId, active)
+                }
+                editorOpen = false
+                editing = null
+            }
+        )
     }
 }
 
 @Composable
 private fun BillsScreen(finance: FinanceState, viewModel: MainViewModel) {
-    var showAdd by remember { mutableStateOf(false) }
+    var editorOpen by remember { mutableStateOf(false) }
+    var editing by remember { mutableStateOf<BillRecord?>(null) }
     val bills = finance.bills.sortedWith(compareBy<BillRecord> { it.paid }.thenBy { it.dueDate })
-    ModuleList("Contas a pagar/receber", "Agenda financeira com baixa no caixa", "Nova", { showAdd = true }) {
-        if (bills.isEmpty()) item { HubEmpty("Nenhuma conta prevista.") }
-        else items(bills, key = { it.id }) { bill ->
-            val status = when {
-                bill.paid -> "Concluído"
-                bill.dueDate < LocalDate.now().toString() -> "Vencido"
-                else -> "Pendente"
-            }
-            Card {
-                Column(Modifier.padding(14.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Column(Modifier.weight(1f)) {
-                            Text(bill.description, fontWeight = FontWeight.SemiBold)
-                            Text("${bill.dueDate} · $status", style = MaterialTheme.typography.bodySmall)
+
+    ModuleList(
+        "Contas a pagar/receber",
+        "Agenda financeira com baixa no caixa",
+        "Nova",
+        {
+            editing = null
+            editorOpen = true
+        }
+    ) {
+        if (bills.isEmpty()) {
+            item { HubEmpty("Nenhuma conta prevista.") }
+        } else {
+            items(bills, key = { it.id }) { bill ->
+                val status = when {
+                    bill.paid -> "Concluído"
+                    bill.dueDate < LocalDate.now().toString() -> "Vencido"
+                    else -> "Pendente"
+                }
+
+                Card {
+                    Column(Modifier.padding(14.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Column(Modifier.weight(1f)) {
+                                Text(bill.description, fontWeight = FontWeight.SemiBold)
+                                Text("${bill.dueDate} · $status", style = MaterialTheme.typography.bodySmall)
+                            }
+                            Text(
+                                (if (bill.type == "expense") "- " else "+ ") + extendedMoney(bill.amount),
+                                fontWeight = FontWeight.Bold
+                            )
                         }
-                        Text((if (bill.type == "expense") "- " else "+ ") + extendedMoney(bill.amount), fontWeight = FontWeight.Bold)
-                    }
-                    Row {
-                        if (!bill.paid) TextButton(onClick = { viewModel.payBill(bill) }) { Text("Marcar pago") }
-                        TextButton(onClick = { viewModel.deleteBill(bill) }) { Text("Excluir") }
+                        Row {
+                            if (!bill.paid) {
+                                TextButton(onClick = { viewModel.payBill(bill) }) {
+                                    Text("Marcar pago")
+                                }
+                            }
+                            TextButton(
+                                onClick = {
+                                    editing = bill
+                                    editorOpen = true
+                                }
+                            ) {
+                                Text("Editar")
+                            }
+                            TextButton(onClick = { viewModel.deleteBill(bill) }) {
+                                Text("Excluir")
+                            }
+                        }
                     }
                 }
             }
         }
     }
-    if (showAdd) {
-        BillDialog(finance, { showAdd = false }) { type, description, amount, dueDate, category, accountId, notes ->
-            viewModel.addBill(type, description, amount, dueDate, category, accountId, notes)
-            showAdd = false
-        }
+
+    if (editorOpen) {
+        BillEditorDialog(
+            finance = finance,
+            initial = editing,
+            onDismiss = {
+                editorOpen = false
+                editing = null
+            },
+            onSave = { type, description, amount, dueDate, category, accountId, notes ->
+                val current = editing
+                if (current == null) {
+                    viewModel.addBill(type, description, amount, dueDate, category, accountId, notes)
+                } else {
+                    viewModel.updateBill(current, type, description, amount, dueDate, category, accountId, notes)
+                }
+                editorOpen = false
+                editing = null
+            }
+        )
     }
 }
 
 @Composable
 private fun BudgetsScreen(finance: FinanceState, viewModel: MainViewModel) {
-    var showAdd by remember { mutableStateOf(false) }
+    var editorOpen by remember { mutableStateOf(false) }
+    var editing by remember { mutableStateOf<BudgetRecord?>(null) }
     val month = YearMonth.now().toString()
-    ModuleList("Orçamentos", "Limites mensais por categoria", "Novo", { showAdd = true }) {
-        if (finance.budgets.isEmpty()) item { HubEmpty("Nenhum orçamento cadastrado.") }
-        else items(finance.budgets, key = { it.id }) { budget ->
-            val spent = finance.transactions.filter {
-                it.type == "expense" && it.category == budget.category && it.date.startsWith(month)
-            }.sumOf { it.amount }
-            val progress = if (budget.amount > 0) (spent / budget.amount).coerceIn(0.0, 1.0) else 0.0
-            Card {
-                Column(Modifier.padding(14.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Column(Modifier.weight(1f)) {
-                            Text(categoryLabel(finance, budget.category), fontWeight = FontWeight.SemiBold)
-                            Text("${extendedMoney(spent)} de ${extendedMoney(budget.amount)}", style = MaterialTheme.typography.bodySmall)
+
+    ModuleList(
+        "Orçamentos",
+        "Limites mensais por categoria",
+        "Novo",
+        {
+            editing = null
+            editorOpen = true
+        }
+    ) {
+        if (finance.budgets.isEmpty()) {
+            item { HubEmpty("Nenhum orçamento cadastrado.") }
+        } else {
+            items(finance.budgets, key = { it.id }) { budget ->
+                val spent = finance.transactions.filter {
+                    it.type == "expense" &&
+                        it.category == budget.category &&
+                        it.date.startsWith(month)
+                }.sumOf { it.amount }
+                val progress = if (budget.amount > 0) {
+                    (spent / budget.amount).coerceIn(0.0, 1.0)
+                } else 0.0
+
+                Card {
+                    Column(Modifier.padding(14.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Column(Modifier.weight(1f)) {
+                                Text(categoryLabel(finance, budget.category), fontWeight = FontWeight.SemiBold)
+                                Text(
+                                    "${extendedMoney(spent)} de ${extendedMoney(budget.amount)}",
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                            }
+                            TextButton(
+                                onClick = {
+                                    editing = budget
+                                    editorOpen = true
+                                }
+                            ) { Text("Editar") }
+                            TextButton(onClick = { viewModel.deleteBudget(budget) }) { Text("Excluir") }
                         }
-                        TextButton(onClick = { viewModel.deleteBudget(budget) }) { Text("Excluir") }
+                        LinearProgressIndicator(
+                            progress = { progress.toFloat() },
+                            modifier = Modifier.fillMaxWidth()
+                        )
                     }
-                    LinearProgressIndicator(progress = { progress.toFloat() }, modifier = Modifier.fillMaxWidth())
                 }
             }
         }
     }
-    if (showAdd) {
-        BudgetDialog(finance, { showAdd = false }) { category, amount ->
-            viewModel.addBudget(category, amount)
-            showAdd = false
-        }
+
+    if (editorOpen) {
+        BudgetEditorDialog(
+            finance = finance,
+            initial = editing,
+            onDismiss = {
+                editorOpen = false
+                editing = null
+            },
+            onSave = { category, amount ->
+                val current = editing
+                if (current == null) viewModel.addBudget(category, amount)
+                else viewModel.updateBudget(current, category, amount)
+                editorOpen = false
+                editing = null
+            }
+        )
     }
 }
 
 @Composable
 private fun GoalsScreen(finance: FinanceState, viewModel: MainViewModel) {
-    var showAdd by remember { mutableStateOf(false) }
-    ModuleList("Metas financeiras", "Objetivos, progresso e prazo", "Nova", { showAdd = true }) {
-        if (finance.goals.isEmpty()) item { HubEmpty("Nenhuma meta cadastrada.") }
-        else items(finance.goals, key = { it.id }) { goal ->
-            Card {
-                Column(Modifier.padding(14.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(goal.icon)
-                        Column(Modifier.weight(1f).padding(horizontal = 10.dp)) {
-                            Text(goal.name, fontWeight = FontWeight.SemiBold)
-                            Text("${extendedMoney(goal.current)} de ${extendedMoney(goal.target)}" +
-                                if (goal.deadline.isNotBlank()) " · ${goal.deadline}" else "",
-                                style = MaterialTheme.typography.bodySmall)
+    var editorOpen by remember { mutableStateOf(false) }
+    var editing by remember { mutableStateOf<GoalRecord?>(null) }
+
+    ModuleList(
+        "Metas financeiras",
+        "Objetivos, progresso e prazo",
+        "Nova",
+        {
+            editing = null
+            editorOpen = true
+        }
+    ) {
+        if (finance.goals.isEmpty()) {
+            item { HubEmpty("Nenhuma meta cadastrada.") }
+        } else {
+            items(finance.goals, key = { it.id }) { goal ->
+                Card {
+                    Column(Modifier.padding(14.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(goal.icon)
+                            Column(Modifier.weight(1f).padding(horizontal = 10.dp)) {
+                                Text(goal.name, fontWeight = FontWeight.SemiBold)
+                                Text(
+                                    "${extendedMoney(goal.current)} de ${extendedMoney(goal.target)}" +
+                                        if (goal.deadline.isNotBlank()) " · ${goal.deadline}" else "",
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                            }
+                            TextButton(
+                                onClick = {
+                                    editing = goal
+                                    editorOpen = true
+                                }
+                            ) { Text("Editar") }
+                            TextButton(onClick = { viewModel.deleteGoal(goal) }) { Text("Excluir") }
                         }
-                        TextButton(onClick = { viewModel.deleteGoal(goal) }) { Text("Excluir") }
+                        LinearProgressIndicator(
+                            progress = { goal.progress.toFloat() },
+                            modifier = Modifier.fillMaxWidth()
+                        )
                     }
-                    LinearProgressIndicator(progress = { goal.progress.toFloat() }, modifier = Modifier.fillMaxWidth())
                 }
             }
         }
     }
-    if (showAdd) {
-        GoalDialog({ showAdd = false }) { name, target, current, deadline, icon ->
-            viewModel.addGoal(name, target, current, deadline, icon)
-            showAdd = false
-        }
+
+    if (editorOpen) {
+        GoalEditorDialog(
+            initial = editing,
+            onDismiss = {
+                editorOpen = false
+                editing = null
+            },
+            onSave = { name, target, current, deadline, icon ->
+                val currentGoal = editing
+                if (currentGoal == null) {
+                    viewModel.addGoal(name, target, current, deadline, icon)
+                } else {
+                    viewModel.updateGoal(currentGoal, name, target, current, deadline, icon)
+                }
+                editorOpen = false
+                editing = null
+            }
+        )
     }
 }
 
 @Composable
 private fun AccountsScreen(finance: FinanceState, viewModel: MainViewModel) {
-    var showAdd by remember { mutableStateOf(false) }
-    ModuleList("Contas e carteiras", "Saldo individual e consolidado", "Nova", { showAdd = true }) {
-        if (finance.accounts.isEmpty()) item { HubEmpty("Cadastre sua conta bancária ou carteira.") }
-        else {
-            item { HubSummary("Saldo consolidado", extendedMoney(finance.accounts.sumOf { accountBalance(finance, it) })) }
+    var editorOpen by remember { mutableStateOf(false) }
+    var editing by remember { mutableStateOf<AccountRecord?>(null) }
+
+    ModuleList(
+        "Contas e carteiras",
+        "Saldo individual e consolidado",
+        "Nova",
+        {
+            editing = null
+            editorOpen = true
+        }
+    ) {
+        if (finance.accounts.isEmpty()) {
+            item { HubEmpty("Cadastre sua conta bancária ou carteira.") }
+        } else {
+            item {
+                HubSummary(
+                    "Saldo consolidado",
+                    extendedMoney(finance.accounts.sumOf { accountBalance(finance, it) })
+                )
+            }
             items(finance.accounts, key = { it.id }) { account ->
-                SimpleRecordCard("${account.icon} ${account.name}", account.type, extendedMoney(accountBalance(finance, account))) {
-                    viewModel.deleteAccount(account)
-                }
+                SimpleRecordCard(
+                    title = "${account.icon} ${account.name}",
+                    subtitle = account.type,
+                    value = extendedMoney(accountBalance(finance, account)),
+                    onEdit = {
+                        editing = account
+                        editorOpen = true
+                    },
+                    onDelete = { viewModel.deleteAccount(account) }
+                )
             }
         }
     }
-    if (showAdd) {
-        AccountDialog({ showAdd = false }) { name, type, opening, icon ->
-            viewModel.addAccount(name, type, opening, icon)
-            showAdd = false
-        }
+
+    if (editorOpen) {
+        AccountEditorDialog(
+            initial = editing,
+            onDismiss = {
+                editorOpen = false
+                editing = null
+            },
+            onSave = { name, type, opening, icon ->
+                val current = editing
+                if (current == null) viewModel.addAccount(name, type, opening, icon)
+                else viewModel.updateAccount(current, name, type, opening, icon)
+                editorOpen = false
+                editing = null
+            }
+        )
     }
 }
 
 @Composable
 private fun NativeCards(finance: FinanceState, viewModel: MainViewModel) {
-    var showAdd by remember { mutableStateOf(false) }
+    var editorOpen by remember { mutableStateOf(false) }
+    var editing by remember { mutableStateOf<CardRecord?>(null) }
     val month = YearMonth.now().toString()
-    ModuleList("Cartões e benefícios", "Crédito, VR, VA e vale-combustível", "Novo", { showAdd = true }) {
-        if (finance.cards.isEmpty()) item { HubEmpty("Nenhum cartão ou benefício cadastrado.") }
-        else items(finance.cards, key = { it.id }) { card ->
-            val used = finance.transactions.filter { tx ->
-                tx.cardId == card.id && tx.type == "expense" &&
-                    if (card.isBenefit) tx.purchaseDate.startsWith(month) else tx.invoiceMonth == month
-            }.sumOf { it.amount }
-            SimpleRecordCard(
-                card.name,
-                cardTypeLabelExtended(card.cardType) + if (card.cardType == "credit") " · fecha ${card.closingDay} · vence ${card.dueDay}" else "",
-                "${extendedMoney(used)} / ${extendedMoney(card.limit)}"
-            ) { viewModel.deleteCard(card) }
+
+    ModuleList(
+        "Cartões e benefícios",
+        "Crédito, VR, VA e vale-combustível",
+        "Novo",
+        {
+            editing = null
+            editorOpen = true
+        }
+    ) {
+        if (finance.cards.isEmpty()) {
+            item { HubEmpty("Nenhum cartão ou benefício cadastrado.") }
+        } else {
+            items(finance.cards, key = { it.id }) { card ->
+                val used = finance.transactions.filter { tx ->
+                    tx.cardId == card.id &&
+                        tx.type == "expense" &&
+                        if (card.isBenefit) tx.purchaseDate.startsWith(month)
+                        else tx.invoiceMonth == month
+                }.sumOf { it.amount }
+
+                SimpleRecordCard(
+                    title = card.name,
+                    subtitle = cardTypeLabelExtended(card.cardType) +
+                        if (card.cardType == "credit") {
+                            " · fecha ${card.closingDay} · vence ${card.dueDay}"
+                        } else "",
+                    value = "${extendedMoney(used)} / ${extendedMoney(card.limit)}",
+                    onEdit = {
+                        editing = card
+                        editorOpen = true
+                    },
+                    onDelete = { viewModel.deleteCard(card) }
+                )
+            }
         }
     }
-    if (showAdd) {
-        CardDialogExtended({ showAdd = false }) { name, type, brand, limit, closing, due ->
-            viewModel.addCard(name, type, brand, limit, closing, due)
-            showAdd = false
-        }
+
+    if (editorOpen) {
+        CardEditorDialog(
+            initial = editing,
+            onDismiss = {
+                editorOpen = false
+                editing = null
+            },
+            onSave = { name, type, brand, limit, closing, due ->
+                val current = editing
+                if (current == null) viewModel.addCard(name, type, brand, limit, closing, due)
+                else viewModel.updateCard(current, name, type, brand, limit, closing, due)
+                editorOpen = false
+                editing = null
+            }
+        )
     }
 }
 
 @Composable
 private fun TransfersScreen(finance: FinanceState, viewModel: MainViewModel) {
-    var showAdd by remember { mutableStateOf(false) }
-    ModuleList("Transferências", "Movimentação entre contas sem alterar receita/despesa", "Nova", { showAdd = true }) {
-        if (finance.transfers.isEmpty()) item { HubEmpty("Nenhuma transferência registrada.") }
-        else items(finance.transfers.sortedByDescending { it.date }, key = { it.id }) { transfer ->
-            val from = finance.accounts.firstOrNull { it.id == transfer.fromAccountId }?.name ?: "Origem"
-            val to = finance.accounts.firstOrNull { it.id == transfer.toAccountId }?.name ?: "Destino"
-            SimpleRecordCard("$from → $to", transfer.date, extendedMoney(transfer.amount)) {
-                viewModel.deleteTransfer(transfer)
+    var editorOpen by remember { mutableStateOf(false) }
+    var editing by remember { mutableStateOf<TransferRecord?>(null) }
+
+    ModuleList(
+        "Transferências",
+        "Movimentação entre contas sem alterar receita/despesa",
+        "Nova",
+        {
+            editing = null
+            editorOpen = true
+        }
+    ) {
+        if (finance.transfers.isEmpty()) {
+            item { HubEmpty("Nenhuma transferência registrada.") }
+        } else {
+            items(finance.transfers.sortedByDescending { it.date }, key = { it.id }) { transfer ->
+                val from = finance.accounts.firstOrNull { it.id == transfer.fromAccountId }?.name ?: "Origem"
+                val to = finance.accounts.firstOrNull { it.id == transfer.toAccountId }?.name ?: "Destino"
+
+                SimpleRecordCard(
+                    title = "$from → $to",
+                    subtitle = transfer.date +
+                        if (transfer.notes.isNotBlank()) " · ${transfer.notes}" else "",
+                    value = extendedMoney(transfer.amount),
+                    onEdit = {
+                        editing = transfer
+                        editorOpen = true
+                    },
+                    onDelete = { viewModel.deleteTransfer(transfer) }
+                )
             }
         }
     }
-    if (showAdd) {
-        TransferDialog(finance, { showAdd = false }) { from, to, amount, date, notes ->
-            viewModel.addTransfer(from, to, amount, date, notes)
-            showAdd = false
-        }
+
+    if (editorOpen) {
+        TransferEditorDialog(
+            finance = finance,
+            initial = editing,
+            onDismiss = {
+                editorOpen = false
+                editing = null
+            },
+            onSave = { from, to, amount, date, notes ->
+                val current = editing
+                if (current == null) viewModel.addTransfer(from, to, amount, date, notes)
+                else viewModel.updateTransfer(current, from, to, amount, date, notes)
+                editorOpen = false
+                editing = null
+            }
+        )
     }
 }
 
 @Composable
 private fun CategoriesScreen(finance: FinanceState, viewModel: MainViewModel) {
-    var showAdd by remember { mutableStateOf(false) }
+    var editorOpen by remember { mutableStateOf(false) }
+    var editing by remember { mutableStateOf<CategoryRecord?>(null) }
     val categories = if (finance.categories.isEmpty()) fallbackCategoryRecords() else finance.categories
-    ModuleList("Categorias", "Organização de gastos, renda e planejamento", "Nova", { showAdd = true }) {
+
+    ModuleList(
+        "Categorias",
+        "Organização de gastos, renda e planejamento",
+        "Nova",
+        {
+            editing = null
+            editorOpen = true
+        }
+    ) {
         items(categories, key = { it.id }) { category ->
             Card {
-                Row(Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    Modifier.fillMaxWidth().padding(14.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     Text(category.icon)
                     Column(Modifier.weight(1f).padding(horizontal = 10.dp)) {
                         Text(category.name, fontWeight = FontWeight.SemiBold)
                         Text(categoryGroupLabel(category.group), style = MaterialTheme.typography.bodySmall)
                     }
+
                     if (finance.categories.any { it.id == category.id }) {
+                        TextButton(
+                            onClick = {
+                                editing = category
+                                editorOpen = true
+                            }
+                        ) { Text("Editar") }
                         TextButton(onClick = { viewModel.deleteCategory(category) }) { Text("Excluir") }
                     }
                 }
             }
         }
     }
-    if (showAdd) {
-        CategoryDialog({ showAdd = false }) { name, icon, group ->
-            viewModel.addCategory(name, icon, group)
-            showAdd = false
-        }
+
+    if (editorOpen) {
+        CategoryEditorDialog(
+            initial = editing,
+            onDismiss = {
+                editorOpen = false
+                editing = null
+            },
+            onSave = { name, icon, group ->
+                val current = editing
+                if (current == null) viewModel.addCategory(name, icon, group)
+                else viewModel.updateCategory(current, name, icon, group)
+                editorOpen = false
+                editing = null
+            }
+        )
     }
 }
 
 @Composable
 private fun ShoppingScreen(finance: FinanceState, viewModel: MainViewModel) {
-    var showListDialog by remember { mutableStateOf(false) }
-    var showItemDialog by remember { mutableStateOf(false) }
-    var activeListId by remember(finance.shoppingLists) { mutableStateOf(finance.shoppingLists.firstOrNull()?.id.orEmpty()) }
+    var listEditorOpen by remember { mutableStateOf(false) }
+    var itemEditorOpen by remember { mutableStateOf(false) }
+    var editingList by remember { mutableStateOf<ShoppingListRecord?>(null) }
+    var editingItem by remember { mutableStateOf<ShoppingItemRecord?>(null) }
+    var activeListId by remember(finance.shoppingLists) {
+        mutableStateOf(finance.shoppingLists.firstOrNull()?.id.orEmpty())
+    }
 
     LaunchedEffect(finance.shoppingLists) {
-        if (finance.shoppingLists.none { it.id == activeListId }) activeListId = finance.shoppingLists.firstOrNull()?.id.orEmpty()
+        if (finance.shoppingLists.none { it.id == activeListId }) {
+            activeListId = finance.shoppingLists.firstOrNull()?.id.orEmpty()
+        }
     }
-    val active = finance.shoppingLists.firstOrNull { it.id == activeListId }
 
-    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    val active = finance.shoppingLists.firstOrNull { it.id == activeListId }
+    val comparisonLists = finance.shoppingLists.map {
+        MarketListSnapshot(it.id, it.name, it.store, it.items)
+    }
+
+    LazyColumn(
+        Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(18.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
         item {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
-                    Text("Lista de compras", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                    Text(
+                        "Lista de compras",
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold
+                    )
                     Text("Listas pessoais sincronizadas com o Firestore")
                 }
-                Button(onClick = { showListDialog = true }) { Text("Nova") }
+                Button(
+                    onClick = {
+                        editingList = null
+                        listEditorOpen = true
+                    }
+                ) { Text("Nova") }
             }
         }
+
         if (finance.shoppingLists.isNotEmpty()) {
             item {
-                ChoiceField("Lista ativa", active?.name ?: "Selecione", finance.shoppingLists.map { it.name }) { label ->
-                    activeListId = finance.shoppingLists.firstOrNull { it.name == label }?.id.orEmpty()
+                ChoiceField(
+                    "Lista ativa",
+                    active?.name ?: "Selecione",
+                    finance.shoppingLists.map { it.name }
+                ) { label ->
+                    activeListId = finance.shoppingLists
+                        .firstOrNull { it.name == label }
+                        ?.id
+                        .orEmpty()
                 }
             }
         }
-        if (active == null) item { HubEmpty("Crie sua primeira lista de compras.") }
-        else {
+
+        if (active == null) {
+            item { HubEmpty("Crie sua primeira lista de compras.") }
+        } else {
             item {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
                         Text(active.name, fontWeight = FontWeight.Bold)
-                        Text("${active.store.ifBlank { "Sem mercado definido" }} · ${active.items.size} itens · ${extendedMoney(active.total)}",
-                            style = MaterialTheme.typography.bodySmall)
+                        Text(
+                            "${active.store.ifBlank { "Sem mercado definido" }} · " +
+                                "${active.items.size} itens · ${extendedMoney(active.total)}",
+                            style = MaterialTheme.typography.bodySmall
+                        )
                     }
-                    TextButton(onClick = { showItemDialog = true }) { Text("Item") }
-                    TextButton(onClick = { viewModel.deleteShoppingList(active) }) { Text("Excluir") }
+                    TextButton(
+                        onClick = {
+                            editingList = active
+                            listEditorOpen = true
+                        }
+                    ) { Text("Editar") }
+                    TextButton(
+                        onClick = {
+                            editingItem = null
+                            itemEditorOpen = true
+                        }
+                    ) { Text("Item") }
+                    TextButton(onClick = { viewModel.deleteShoppingList(active) }) {
+                        Text("Excluir")
+                    }
                 }
             }
-            if (active.items.isEmpty()) item { HubEmpty("Nenhum produto nesta lista.") }
-            else items(active.items.sortedBy { it.order }, key = { it.id }) { item ->
-                Card {
-                    Row(Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Column(Modifier.weight(1f)) {
-                            Text(item.product, fontWeight = FontWeight.SemiBold)
-                            Text("${formatQty(item.qty)} × ${extendedMoney(item.unitPrice)}", style = MaterialTheme.typography.bodySmall)
+
+            if (active.items.isEmpty()) {
+                item { HubEmpty("Nenhum produto nesta lista.") }
+            } else {
+                items(active.items.sortedBy { it.order }, key = { it.id }) { item ->
+                    Card {
+                        Row(
+                            Modifier.fillMaxWidth().padding(14.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(Modifier.weight(1f)) {
+                                Text(item.product, fontWeight = FontWeight.SemiBold)
+                                Text(
+                                    "${formatQty(item.qty)} × ${extendedMoney(item.unitPrice)}",
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                            }
+                            Text(extendedMoney(item.total), fontWeight = FontWeight.Bold)
+                            TextButton(
+                                onClick = {
+                                    editingItem = item
+                                    itemEditorOpen = true
+                                }
+                            ) { Text("Editar") }
+                            TextButton(
+                                onClick = {
+                                    viewModel.deleteShoppingItem(active.id, item.id)
+                                }
+                            ) { Text("×") }
                         }
-                        Text(extendedMoney(item.total), fontWeight = FontWeight.Bold)
-                        TextButton(onClick = { viewModel.deleteShoppingItem(active.id, item.id) }) { Text("×") }
                     }
                 }
             }
         }
+
+        if (comparisonLists.size >= 2) {
+            item {
+                ShoppingComparisonPanel(comparisonLists)
+            }
+        }
     }
 
-    if (showListDialog) ShoppingListDialog({ showListDialog = false }) { name, store ->
-        viewModel.addShoppingList(name, store); showListDialog = false
+    if (listEditorOpen) {
+        ShoppingListEditorDialog(
+            initial = editingList,
+            onDismiss = {
+                listEditorOpen = false
+                editingList = null
+            },
+            onSave = { name, store ->
+                val current = editingList
+                if (current == null) viewModel.addShoppingList(name, store)
+                else viewModel.updateShoppingList(current, name, store)
+                listEditorOpen = false
+                editingList = null
+            }
+        )
     }
-    if (showItemDialog && active != null) ShoppingItemDialog({ showItemDialog = false }) { product, qty, price ->
-        viewModel.addShoppingItem(active.id, product, qty, price); showItemDialog = false
+
+    if (itemEditorOpen && active != null) {
+        ShoppingItemEditorDialog(
+            initial = editingItem,
+            onDismiss = {
+                itemEditorOpen = false
+                editingItem = null
+            },
+            onSave = { product, qty, price ->
+                val current = editingItem
+                if (current == null) {
+                    viewModel.addShoppingItem(active.id, product, qty, price)
+                } else {
+                    viewModel.updateShoppingItem(active.id, current.id, product, qty, price)
+                }
+                itemEditorOpen = false
+                editingItem = null
+            }
+        )
     }
 }
 
 @Composable
 private fun NativeAccountSettings(state: MainUiState, viewModel: MainViewModel) {
-    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    LazyColumn(
+        Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(18.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
         item { HubSummary("Conta Google", state.userName.ifBlank { state.userEmail }) }
         item { HubSummary("E-mail", state.userEmail) }
         item { HubSummary("Firebase", "stopgastos · ${state.syncMessage}") }
         item { HubSummary("Aplicativo", "Kotlin + Java · Android nativo") }
-        item { OutlinedButton(onClick = viewModel::signOut, modifier = Modifier.fillMaxWidth()) { Text("Sair da conta") } }
+        item {
+            AccountActionsPanel(state = state, viewModel = viewModel)
+        }
+        item {
+            OutlinedButton(
+                onClick = viewModel::signOut,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Sair da conta")
+            }
+        }
     }
 }
 
@@ -443,11 +917,19 @@ private fun ModuleList(
     onAction: () -> Unit,
     content: androidx.compose.foundation.lazy.LazyListScope.() -> Unit
 ) {
-    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    LazyColumn(
+        Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(18.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
         item {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
-                    Text(title, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                    Text(
+                        title,
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold
+                    )
                     Text(subtitle, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 Button(onClick = onAction) { Text(action) }
@@ -458,16 +940,37 @@ private fun ModuleList(
 }
 
 @Composable
-private fun SimpleRecordCard(title: String, subtitle: String, value: String, onDelete: () -> Unit) {
+private fun SimpleRecordCard(
+    title: String,
+    subtitle: String,
+    value: String,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit
+) {
     Card {
-        Row(Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            Modifier.fillMaxWidth().padding(14.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             Column(Modifier.weight(1f)) {
-                Text(title, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    title,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
             Column(horizontalAlignment = Alignment.End) {
                 Text(value, fontWeight = FontWeight.Bold)
-                TextButton(onClick = onDelete) { Text("Excluir") }
+                Row {
+                    TextButton(onClick = onEdit) { Text("Editar") }
+                    TextButton(onClick = onDelete) { Text("Excluir") }
+                }
             }
         }
     }
@@ -485,20 +988,29 @@ private fun HubSummary(title: String, value: String) {
 
 @Composable
 private fun HubEmpty(text: String) {
-    Card { Text(text, Modifier.fillMaxWidth().padding(18.dp), color = MaterialTheme.colorScheme.onSurfaceVariant) }
+    Card {
+        Text(
+            text,
+            Modifier.fillMaxWidth().padding(18.dp),
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
 }
 
 internal fun accountBalance(finance: FinanceState, account: AccountRecord): Double {
     var balance = account.openingBalance
+
     finance.transactions.forEach { tx ->
         if (tx.accountId == account.id) {
             if (tx.type == "income") balance += tx.amount
             if (tx.type == "expense") balance -= tx.amount
         }
     }
+
     finance.transfers.forEach { transfer ->
         if (transfer.fromAccountId == account.id) balance -= transfer.amount
         if (transfer.toAccountId == account.id) balance += transfer.amount
     }
+
     return balance
 }
