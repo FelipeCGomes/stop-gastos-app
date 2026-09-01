@@ -545,9 +545,8 @@ class FamilyRepository {
                 ),
                 SetOptions.merge()
             )
-            loadSharedItems(listId) { loadResult ->
-                onResult(loadResult)
-            }
+            loadSharedItems(listId)
+            onResult(Result.success(Unit))
         }.addOnFailureListener { onResult(Result.failure(it)) }
     }
 
@@ -563,7 +562,8 @@ class FamilyRepository {
 
         listRef.collection("items").document(itemId).delete()
             .addOnSuccessListener {
-                loadSharedItems(listId) { loadResult -> onResult(loadResult) }
+                loadSharedItems(listId)
+                onResult(Result.success(Unit))
             }
             .addOnFailureListener { onResult(Result.failure(it)) }
     }
