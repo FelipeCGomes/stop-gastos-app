@@ -1,4 +1,4 @@
 <resources>
     <string name="app_name">Stop Gastos</string>
-    <string name="default_web_client_id">REPLACE_WITH_FIREBASE_WEB_CLIENT_ID.apps.googleusercontent.com</string>
+    <string name="firebase_web_client_id_override">REPLACE_WITH_FIREBASE_WEB_CLIENT_ID.apps.googleusercontent.com</string>
 </resources>
