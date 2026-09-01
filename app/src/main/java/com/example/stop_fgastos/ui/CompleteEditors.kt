@@ -543,6 +543,10 @@ internal fun CardEditorDialog(
     var accountId by remember(initial?.id) { mutableStateOf(initial?.accountId.orEmpty()) }
     var color by remember(initial?.id) { mutableStateOf(initial?.color ?: "#141b34") }
 
+    LaunchedEffect(type) {
+        if (type != "credit") accountId = ""
+    }
+
     EditorDialog(if (initial == null) "Novo cartão/benefício" else "Editar cartão/benefício", onDismiss, {
         val value = editorNumber(limit)
         if (name.isNotBlank() && value >= 0) {
@@ -577,8 +581,6 @@ internal fun CardEditorDialog(
             }
             EditorNumber("Dia do fechamento", closing) { closing = it }
             EditorNumber("Dia do vencimento", due) { due = it }
-        } else {
-            accountId = ""
         }
     }
 }
