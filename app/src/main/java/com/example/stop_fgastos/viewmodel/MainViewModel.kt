@@ -184,7 +184,9 @@ class MainViewModel : ViewModel() {
         category: String,
         payment: String,
         cardId: String,
-        installmentCount: Int
+        installmentCount: Int,
+        kind: String = "fixed",
+        active: Boolean = true
     ) {
         val now = LocalDate.now()
         val safeDay = day.coerceIn(1, YearMonth.from(now).lengthOfMonth())
@@ -196,6 +198,7 @@ class MainViewModel : ViewModel() {
 
         val recurring = RecurringRecord(
             id = id,
+            kind = kind,
             description = description,
             amount = amount,
             day = day.coerceIn(1, 31),
@@ -204,7 +207,7 @@ class MainViewModel : ViewModel() {
             cardId = cardId,
             installmentCount = effectiveCount,
             installmentStartMonth = if (isCredit && effectiveCount > 1) purchaseDate.take(7) else "",
-            active = true,
+            active = active,
             updatedAt = nowIso
         )
 
@@ -222,7 +225,11 @@ class MainViewModel : ViewModel() {
         )
 
         runWrite { callback ->
-            repository.saveRecurringWithTransactions(recurring, records, callback)
+            if (active) {
+                repository.saveRecurringWithTransactions(recurring, records, callback)
+            } else {
+                repository.upsertRecurring(recurring, callback)
+            }
         }
     }
 
@@ -234,7 +241,9 @@ class MainViewModel : ViewModel() {
         category: String,
         payment: String,
         cardId: String,
-        installmentCount: Int
+        installmentCount: Int,
+        kind: String,
+        active: Boolean
     ) {
         val anchorMonth = existing.installmentStartMonth.ifBlank { YearMonth.now().toString() }
         val anchor = YearMonth.parse(anchorMonth)
@@ -243,6 +252,7 @@ class MainViewModel : ViewModel() {
         val isCredit = payment == "Cartão de crédito"
         val effectiveCount = if (isCredit) installmentCount.coerceIn(1, 60) else 1
         val updated = existing.copy(
+            kind = kind,
             description = description,
             amount = amount,
             day = day.coerceIn(1, 31),
@@ -251,6 +261,7 @@ class MainViewModel : ViewModel() {
             cardId = cardId,
             installmentCount = effectiveCount,
             installmentStartMonth = if (isCredit && effectiveCount > 1) anchorMonth else "",
+            active = active,
             updatedAt = nowIso()
         )
 
@@ -269,12 +280,16 @@ class MainViewModel : ViewModel() {
 
         val replaceMonth = if (isCredit && effectiveCount > 1) null else anchorMonth
         runWrite { callback ->
-            repository.saveRecurringReplacingSourceTransactions(
-                recurring = updated,
-                records = records,
-                monthKey = replaceMonth,
-                onResult = callback
-            )
+            if (active) {
+                repository.saveRecurringReplacingSourceTransactions(
+                    recurring = updated,
+                    records = records,
+                    monthKey = replaceMonth,
+                    onResult = callback
+                )
+            } else {
+                repository.upsertRecurring(updated, callback)
+            }
         }
     }
 
@@ -285,15 +300,20 @@ class MainViewModel : ViewModel() {
         brand: String,
         limit: Double,
         closingDay: Int,
-        dueDay: Int
+        dueDay: Int,
+        accountId: String,
+        color: String
     ) {
+        val benefit = cardType != "credit"
         val updated = existing.copy(
             name = name,
             cardType = cardType,
             brand = brand,
             limit = limit,
-            closingDay = closingDay.coerceIn(1, 31),
-            dueDay = dueDay.coerceIn(1, 31)
+            closingDay = if (benefit) 0 else closingDay.coerceIn(1, 31),
+            dueDay = if (benefit) 0 else dueDay.coerceIn(1, 31),
+            accountId = if (benefit) "" else accountId,
+            color = color.ifBlank { existing.color }
         )
         runWrite { callback -> repository.upsertCard(updated, callback) }
     }
@@ -304,7 +324,9 @@ class MainViewModel : ViewModel() {
         brand: String,
         limit: Double,
         closingDay: Int,
-        dueDay: Int
+        dueDay: Int,
+        accountId: String = "",
+        color: String = ""
     ) {
         val defaultColor = when (cardType) {
             "meal" -> "#e97824"
@@ -314,15 +336,17 @@ class MainViewModel : ViewModel() {
             else -> "#141b34"
         }
 
+        val benefit = cardType != "credit"
         val card = CardRecord(
             id = "card_" + UUID.randomUUID(),
             name = name,
             cardType = cardType,
             brand = brand,
             limit = limit,
-            closingDay = closingDay.coerceIn(1, 31),
-            dueDay = dueDay.coerceIn(1, 31),
-            color = defaultColor
+            closingDay = if (benefit) 0 else closingDay.coerceIn(1, 31),
+            dueDay = if (benefit) 0 else dueDay.coerceIn(1, 31),
+            accountId = if (benefit) "" else accountId,
+            color = color.ifBlank { defaultColor }
         )
 
         runWrite { callback -> repository.upsertCard(card, callback) }
@@ -333,13 +357,15 @@ class MainViewModel : ViewModel() {
         name: String,
         type: String,
         openingBalance: Double,
-        icon: String
+        icon: String,
+        color: String
     ) {
         val updated = existing.copy(
             name = name,
             type = type,
             openingBalance = openingBalance,
             icon = icon.ifBlank { "🏦" },
+            color = color.ifBlank { existing.color },
             updatedAt = nowIso()
         )
         runWrite { callback -> repository.upsertAccount(updated, callback) }
@@ -349,7 +375,8 @@ class MainViewModel : ViewModel() {
         name: String,
         type: String,
         openingBalance: Double,
-        icon: String
+        icon: String,
+        color: String = "#7c5cff"
     ) {
         val account = AccountRecord(
             id = "acc_" + UUID.randomUUID(),
@@ -357,6 +384,7 @@ class MainViewModel : ViewModel() {
             type = type,
             openingBalance = openingBalance,
             icon = icon.ifBlank { "🏦" },
+            color = color.ifBlank { "#7c5cff" },
             updatedAt = nowIso()
         )
         runWrite { callback -> repository.upsertAccount(account, callback) }
@@ -417,7 +445,8 @@ class MainViewModel : ViewModel() {
         description: String,
         amount: Double,
         day: Int,
-        accountId: String
+        accountId: String,
+        active: Boolean = true
     ) {
         val now = LocalDate.now()
         val month = YearMonth.from(now)
@@ -433,7 +462,7 @@ class MainViewModel : ViewModel() {
             amount = amount,
             day = day.coerceIn(1, 31),
             accountId = accountId,
-            active = true,
+            active = active,
             createdAt = timestamp,
             updatedAt = timestamp
         )
@@ -456,7 +485,11 @@ class MainViewModel : ViewModel() {
         )
 
         runWrite { callback ->
-            repository.saveIncomeSourceWithTransactions(source, listOf(transaction), callback)
+            if (active) {
+                repository.saveIncomeSourceWithTransactions(source, listOf(transaction), callback)
+            } else {
+                repository.upsertIncomeSource(source, callback)
+            }
         }
     }
 
@@ -656,11 +689,17 @@ class MainViewModel : ViewModel() {
         existing: CategoryRecord,
         name: String,
         icon: String,
-        group: String
+        group: String,
+        color: String
     ) {
         runWrite { callback ->
             repository.upsertCategory(
-                existing.copy(name = name, icon = icon.ifBlank { "📦" }, group = group),
+                existing.copy(
+                    name = name,
+                    icon = icon.ifBlank { "📦" },
+                    group = group,
+                    color = color.ifBlank { existing.color }
+                ),
                 callback
             )
         }
@@ -669,12 +708,14 @@ class MainViewModel : ViewModel() {
     fun addCategory(
         name: String,
         icon: String,
-        group: String
+        group: String,
+        color: String = "#8d99ae"
     ) {
         val category = CategoryRecord(
             id = "cat_" + UUID.randomUUID(),
             name = name,
             icon = icon.ifBlank { "📦" },
+            color = color.ifBlank { "#8d99ae" },
             group = group
         )
         runWrite { callback -> repository.upsertCategory(category, callback) }
