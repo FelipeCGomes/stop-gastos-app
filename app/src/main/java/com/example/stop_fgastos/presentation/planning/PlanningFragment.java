@@ -21,6 +21,7 @@ import com.example.stop_fgastos.presentation.common.DisplayRow;
 import com.example.stop_fgastos.presentation.common.RecordAdapter;
 import com.example.stop_fgastos.presentation.common.RecordDialogs;
 import com.example.stop_fgastos.presentation.common.UiFormat;
+import com.example.stop_fgastos.presentation.common.UiPrivacy;
 import com.example.stop_fgastos.presentation.common.ViewModelAccess;
 import com.example.stop_fgastos.presentation.main.MainViewModel;
 import com.google.android.material.button.MaterialButton;
@@ -169,7 +170,9 @@ public final class PlanningFragment extends Fragment {
                             incomeKind(record.text("kind"))
                                     + " · dia " + Math.max(1, record.integer("day"))
                                     + (record.bool("active") ? "" : " · pausada"),
-                            "+ " + UiFormat.money(record.number("amount")),
+                            UiPrivacy.showPositiveValues(requireContext())
+                                    ? "+ " + UiFormat.money(record.number("amount"))
+                                    : "",
                             "Editar",
                             true
                     ));
@@ -210,7 +213,10 @@ public final class PlanningFragment extends Fragment {
                             record,
                             record.text("description", "Conta"),
                             billSubtitle.toString(),
-                            ("expense".equals(record.text("type")) ? "- " : "+ ")
+                            !"expense".equals(record.text("type"))
+                                    && !UiPrivacy.showPositiveValues(requireContext())
+                                    ? ""
+                                    : ("expense".equals(record.text("type")) ? "- " : "+ ")
                                     + UiFormat.money(displayAmount),
                             "Editar",
                             paid ? "Desfazer pago" : "Registrar pago",

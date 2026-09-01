@@ -101,6 +101,16 @@ public final class DashboardFragment extends Fragment {
         viewModel.finance().observe(getViewLifecycleOwner(), this::render);
     }
 
+    @Override
+    public void onResume() {
+        super.onResume();
+        boolean updated = UiPrivacy.showPositiveValues(requireContext());
+        if (updated != showPositiveValues) {
+            showPositiveValues = updated;
+            render(latestState);
+        }
+    }
+
     private void render(FinanceState state) {
         latestState = state == null ? new FinanceState() : state;
         YearMonth currentMonth = YearMonth.now();

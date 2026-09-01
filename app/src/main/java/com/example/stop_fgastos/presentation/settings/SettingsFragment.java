@@ -20,6 +20,7 @@ import com.example.stop_fgastos.R;
 import com.example.stop_fgastos.domain.model.UserSession;
 import com.example.stop_fgastos.domain.repository.ResultCallback;
 import com.example.stop_fgastos.presentation.auth.GoogleAuthUi;
+import com.example.stop_fgastos.presentation.common.UiPrivacy;
 import com.example.stop_fgastos.presentation.common.UiTheme;
 import com.example.stop_fgastos.presentation.common.ViewModelAccess;
 import com.example.stop_fgastos.presentation.main.MainViewModel;
@@ -28,6 +29,7 @@ import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
 import com.google.android.gms.common.api.ApiException;
 import com.google.android.material.button.MaterialButtonToggleGroup;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import com.google.android.material.materialswitch.MaterialSwitch;
 
 public final class SettingsFragment extends Fragment {
     private MainViewModel viewModel;
@@ -93,6 +95,7 @@ public final class SettingsFragment extends Fragment {
         status = view.findViewById(R.id.settings_status);
 
         configureTheme(view);
+        configurePositiveValues(view);
 
         view.findViewById(R.id.settings_enable_notifications).setOnClickListener(v -> requestNotifications());
 
@@ -145,6 +148,19 @@ public final class SettingsFragment extends Fragment {
             } else {
                 UiTheme.set(requireContext(), UiTheme.SYSTEM);
             }
+        });
+    }
+
+    private void configurePositiveValues(View view) {
+        MaterialSwitch positiveValues = view.findViewById(R.id.settings_show_positive_values);
+        positiveValues.setChecked(UiPrivacy.showPositiveValues(requireContext()));
+        positiveValues.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            UiPrivacy.setShowPositiveValues(requireContext(), isChecked);
+            setStatus(
+                    isChecked
+                            ? "Valores de entradas habilitados."
+                            : "Valores de entradas ocultos."
+            );
         });
     }
 

@@ -19,6 +19,7 @@ import com.example.stop_fgastos.presentation.common.DisplayRow;
 import com.example.stop_fgastos.presentation.common.RecordAdapter;
 import com.example.stop_fgastos.presentation.common.RecordDialogs;
 import com.example.stop_fgastos.presentation.common.UiFormat;
+import com.example.stop_fgastos.presentation.common.UiPrivacy;
 import com.example.stop_fgastos.presentation.common.ViewModelAccess;
 import com.example.stop_fgastos.presentation.main.MainViewModel;
 import com.google.android.material.button.MaterialButton;
@@ -100,7 +101,9 @@ public final class TransactionsFragment extends Fragment {
                     tx,
                     tx.text("description", "Lançamento"),
                     tx.text("date") + " · " + tx.text("payment") + installment,
-                    ("expense".equals(tx.text("type")) ? "- " : "+ ") + UiFormat.money(tx.number("amount")),
+                    !"expense".equals(tx.text("type")) && !UiPrivacy.showPositiveValues(requireContext())
+                            ? ""
+                            : ("expense".equals(tx.text("type")) ? "- " : "+ ") + UiFormat.money(tx.number("amount")),
                     "Editar",
                     true
             ));

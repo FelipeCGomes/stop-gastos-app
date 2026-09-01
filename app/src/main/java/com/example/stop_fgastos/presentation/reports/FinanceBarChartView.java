@@ -30,6 +30,7 @@ public final class FinanceBarChartView extends View {
     private final Paint axisLabelPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint bottomLabelPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint valuePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint valueChipPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint tooltipPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint tooltipTextPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
 
@@ -59,6 +60,8 @@ public final class FinanceBarChartView extends View {
         valuePaint.setTextSize(dp(8f));
         valuePaint.setTextAlign(Paint.Align.CENTER);
         valuePaint.setFakeBoldText(true);
+
+        valueChipPaint.setColor(ContextCompat.getColor(context, R.color.surface_3));
 
         tooltipPaint.setColor(ContextCompat.getColor(context, R.color.surface_3));
         tooltipTextPaint.setColor(ContextCompat.getColor(context, R.color.text_primary));
@@ -95,7 +98,6 @@ public final class FinanceBarChartView extends View {
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
-
         if (values.isEmpty()) return;
 
         double max = 1.0;
@@ -103,7 +105,7 @@ public final class FinanceBarChartView extends View {
 
         float left = dp(48);
         float right = getWidth() - dp(7);
-        float top = selectedIndex >= 0 ? dp(58) : dp(24);
+        float top = selectedIndex >= 0 ? dp(58) : dp(30);
         float bottom = getHeight() - dp(34);
 
         for (int i = 0; i <= 3; i++) {
@@ -153,11 +155,11 @@ public final class FinanceBarChartView extends View {
             );
 
             if (value > 0) {
-                canvas.drawText(
+                drawValueChip(
+                        canvas,
                         compactMoney(value, false),
                         center,
-                        Math.max(top + dp(10), barTop - dp(5)),
-                        valuePaint
+                        Math.max(top + dp(12), barTop - dp(10))
                 );
             }
 
@@ -178,6 +180,22 @@ public final class FinanceBarChartView extends View {
         if (selectedIndex >= 0 && selectedIndex < values.size()) {
             drawTooltip(canvas, selectedIndex, left, right);
         }
+    }
+
+    private void drawValueChip(Canvas canvas, String text, float centerX, float centerY) {
+        float textWidth = valuePaint.measureText(text);
+        float horizontal = dp(6);
+        float halfHeight = dp(8);
+
+        RectF chip = new RectF(
+                centerX - textWidth / 2f - horizontal,
+                centerY - halfHeight,
+                centerX + textWidth / 2f + horizontal,
+                centerY + halfHeight
+        );
+
+        canvas.drawRoundRect(chip, dp(7), dp(7), valueChipPaint);
+        canvas.drawText(text, centerX, centerY + dp(2.8f), valuePaint);
     }
 
     private void drawTooltip(Canvas canvas, int index, float left, float right) {

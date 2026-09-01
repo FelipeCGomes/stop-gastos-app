@@ -30,12 +30,14 @@ public final class FinanceTrendChartView extends View {
     private final Paint labelPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint axisLabelPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint valuePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint valueChipPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint tooltipPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint tooltipTextPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
 
     private float progress = 1f;
     private int selectedIndex = -1;
     private boolean privacyEnabled;
+    private boolean showPositiveValues;
 
     public FinanceTrendChartView(Context context) {
         this(context, null);
@@ -60,9 +62,11 @@ public final class FinanceTrendChartView extends View {
         axisLabelPaint.setTextAlign(Paint.Align.RIGHT);
 
         valuePaint.setColor(ContextCompat.getColor(context, R.color.text_primary));
-        valuePaint.setTextSize(dp(7.5f));
+        valuePaint.setTextSize(dp(8f));
         valuePaint.setTextAlign(Paint.Align.CENTER);
         valuePaint.setFakeBoldText(true);
+
+        valueChipPaint.setColor(ContextCompat.getColor(context, R.color.surface_3));
 
         tooltipPaint.setColor(ContextCompat.getColor(context, R.color.surface_3));
         tooltipTextPaint.setColor(ContextCompat.getColor(context, R.color.text_primary));
@@ -72,6 +76,11 @@ public final class FinanceTrendChartView extends View {
 
     public void setPrivacyEnabled(boolean enabled) {
         privacyEnabled = enabled;
+        invalidate();
+    }
+
+    public void setShowPositiveValues(boolean show) {
+        showPositiveValues = show;
         invalidate();
     }
 
@@ -120,7 +129,7 @@ public final class FinanceTrendChartView extends View {
 
         float left = dp(48);
         float right = getWidth() - dp(7);
-        float top = selectedIndex >= 0 ? dp(58) : dp(22);
+        float top = selectedIndex >= 0 ? dp(58) : dp(30);
         float bottom = getHeight() - dp(30);
 
         for (int i = 0; i <= 3; i++) {
@@ -128,10 +137,9 @@ public final class FinanceTrendChartView extends View {
             float y = top + (bottom - top) * fraction;
             canvas.drawLine(left, y, right, y, gridPaint);
 
-            double axisValue = max * (1.0 - fraction);
             if (!privacyEnabled) {
                 canvas.drawText(
-                        compactMoney(axisValue, true),
+                        compactMoney(max * (1.0 - fraction), true),
                         left - dp(6),
                         y + dp(3),
                         axisLabelPaint
@@ -168,21 +176,21 @@ public final class FinanceTrendChartView extends View {
                     expensePaint
             );
 
-            if (!privacyEnabled && in > 0) {
-                canvas.drawText(
+            if (!privacyEnabled && showPositiveValues && in > 0) {
+                drawValueChip(
+                        canvas,
                         compactMoney(in, false),
                         inLeft + barWidth / 2f,
-                        Math.max(top + dp(9), bottom - inHeight - dp(4)),
-                        valuePaint
+                        Math.max(top + dp(12), bottom - inHeight - dp(10))
                 );
             }
 
             if (!privacyEnabled && out > 0) {
-                canvas.drawText(
+                drawValueChip(
+                        canvas,
                         compactMoney(out, false),
                         outLeft + barWidth / 2f,
-                        Math.max(top + dp(9), bottom - outHeight - dp(4)),
-                        valuePaint
+                        Math.max(top + dp(12), bottom - outHeight - dp(10))
                 );
             }
 
@@ -195,6 +203,22 @@ public final class FinanceTrendChartView extends View {
         }
     }
 
+    private void drawValueChip(Canvas canvas, String text, float centerX, float centerY) {
+        float textWidth = valuePaint.measureText(text);
+        float horizontal = dp(5);
+        float halfHeight = dp(8);
+
+        RectF chip = new RectF(
+                centerX - textWidth / 2f - horizontal,
+                centerY - halfHeight,
+                centerX + textWidth / 2f + horizontal,
+                centerY + halfHeight
+        );
+
+        canvas.drawRoundRect(chip, dp(7), dp(7), valueChipPaint);
+        canvas.drawText(text, centerX, centerY + dp(2.8f), valuePaint);
+    }
+
     private void drawTooltip(Canvas canvas, int index, float left, float right) {
         String month = index < labels.size() ? labels.get(index) : "Mês";
         double in = index < income.size() ? income.get(index) : 0;
@@ -203,20 +227,23 @@ public final class FinanceTrendChartView extends View {
         RectF box = new RectF(left, dp(4), right, dp(48));
         canvas.drawRoundRect(box, dp(11), dp(11), tooltipPaint);
 
-        String text = privacyEnabled
-                ? month + "   Valores ocultos"
-                : month
-                + "   Entradas " + compactMoney(in, true)
-                + "   •   Saídas " + compactMoney(out, true);
+        String text;
+        if (privacyEnabled) {
+            text = month + "   Valores ocultos";
+        } else if (!showPositiveValues) {
+            text = month + "   Saídas " + compactMoney(out, true);
+        } else {
+            text = month
+                    + "   Entradas " + compactMoney(in, true)
+                    + "   •   Saídas " + compactMoney(out, true);
+        }
 
         canvas.drawText(text, left + dp(10), dp(31), tooltipTextPaint);
     }
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {
-        if (event.getAction() != MotionEvent.ACTION_UP) {
-            return true;
-        }
+        if (event.getAction() != MotionEvent.ACTION_UP) return true;
 
         int count = Math.max(income.size(), expense.size());
         if (count == 0) return super.onTouchEvent(event);

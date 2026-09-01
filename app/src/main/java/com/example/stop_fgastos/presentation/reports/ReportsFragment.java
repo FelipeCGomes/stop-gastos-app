@@ -21,6 +21,7 @@ import com.example.stop_fgastos.presentation.common.DisplayRow;
 import com.example.stop_fgastos.presentation.common.RecordAdapter;
 import com.example.stop_fgastos.presentation.common.UiFormat;
 import com.example.stop_fgastos.presentation.common.UiMotion;
+import com.example.stop_fgastos.presentation.common.UiPrivacy;
 import com.example.stop_fgastos.presentation.common.ViewModelAccess;
 import com.example.stop_fgastos.presentation.main.MainViewModel;
 
@@ -102,9 +103,10 @@ public final class ReportsFragment extends Fragment {
         monthLabel.setText(UiFormat.month(month));
 
         MonthlySummary summary = viewModel.summary(month);
+        boolean showPositive = UiPrivacy.showPositiveValues(requireContext());
         summaryLabel.setText(
-                "Receitas   " + UiFormat.money(summary.income())
-                        + "\nDespesas   " + UiFormat.money(summary.expense())
+                (showPositive ? "Receitas   " + UiFormat.money(summary.income()) + "\n" : "")
+                        + "Despesas   " + UiFormat.money(summary.expense())
                         + "\nSaldo   " + UiFormat.money(summary.balance())
                         + "\nEconomia   "
                         + String.format(

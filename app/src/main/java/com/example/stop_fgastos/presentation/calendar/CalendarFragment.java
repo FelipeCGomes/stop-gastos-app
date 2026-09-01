@@ -18,6 +18,7 @@ import com.example.stop_fgastos.domain.model.MonthlySummary;
 import com.example.stop_fgastos.presentation.common.DisplayRow;
 import com.example.stop_fgastos.presentation.common.RecordAdapter;
 import com.example.stop_fgastos.presentation.common.UiFormat;
+import com.example.stop_fgastos.presentation.common.UiPrivacy;
 import com.example.stop_fgastos.presentation.common.ViewModelAccess;
 import com.example.stop_fgastos.presentation.main.MainViewModel;
 
@@ -74,9 +75,10 @@ public final class CalendarFragment extends Fragment {
     private void render() {
         monthLabel.setText(UiFormat.month(month));
         MonthlySummary summary = viewModel.summary(month);
+        boolean showPositive = UiPrivacy.showPositiveValues(requireContext());
         summaryLabel.setText(
-                "Entradas: " + UiFormat.money(summary.income())
-                        + "   Saídas: " + UiFormat.money(summary.expense())
+                (showPositive ? "Entradas: " + UiFormat.money(summary.income()) + "   " : "")
+                        + "Saídas: " + UiFormat.money(summary.expense())
                         + "   Saldo: " + UiFormat.money(summary.balance())
         );
 
@@ -93,7 +95,9 @@ public final class CalendarFragment extends Fragment {
                     tx,
                     tx.text("description", "Lançamento"),
                     tx.text("date") + " · Lançamento" + installment,
-                    ("expense".equals(tx.text("type")) ? "- " : "+ ")
+                    !"expense".equals(tx.text("type")) && !showPositive
+                            ? ""
+                            : ("expense".equals(tx.text("type")) ? "- " : "+ ")
                             + UiFormat.money(tx.number("amount")),
                     "",
                     false
@@ -106,7 +110,9 @@ public final class CalendarFragment extends Fragment {
                     bill,
                     bill.text("description", "Conta prevista"),
                     bill.text("dueDate") + " · " + (bill.bool("paid") ? "Pago" : "Previsto"),
-                    ("expense".equals(bill.text("type")) ? "- " : "+ ")
+                    !"expense".equals(bill.text("type")) && !showPositive
+                            ? ""
+                            : ("expense".equals(bill.text("type")) ? "- " : "+ ")
                             + UiFormat.money(bill.number("amount")),
                     "",
                     false
