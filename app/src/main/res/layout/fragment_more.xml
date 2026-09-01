@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="18dp">
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Mais" android:textSize="28sp" android:textStyle="bold" />
+        <com.google.android.material.button.MaterialButton android:id="@+id/more_family" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="18dp" android:text="Família e convites" />
+        <com.google.android.material.button.MaterialButton android:id="@+id/more_shopping" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:text="Listas de compras" />
+        <com.google.android.material.button.MaterialButton android:id="@+id/more_calendar" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:text="Calendário financeiro" />
+        <com.google.android.material.button.MaterialButton android:id="@+id/more_reports" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:text="Relatórios e exportação" />
+        <com.google.android.material.button.MaterialButton android:id="@+id/more_settings" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:text="Conta e notificações" />
+    </LinearLayout>
+</ScrollView>
