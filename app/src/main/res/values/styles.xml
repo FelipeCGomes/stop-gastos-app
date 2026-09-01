@@ -54,7 +54,7 @@
         <item name="android:textColor">@color/primary_2</item>
         <item name="android:textAllCaps">false</item>
     </style>
-    <style name="Widget.StopGastos.Input">
+    <style name="Widget.StopGastos.Input" parent="@android:style/Widget.EditText">
         <item name="android:background">@drawable/bg_input</item>
         <item name="android:textColor">@color/text_primary</item>
         <item name="android:textColorHint">@color/text_muted</item>
