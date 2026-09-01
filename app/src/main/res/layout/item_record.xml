@@ -1,41 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
-<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:layout_marginBottom="8dp">
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:padding="14dp">
-
-        <TextView android:id="@+id/item_title" android:layout_width="match_parent" android:layout_height="wrap_content" android:textStyle="bold" android:textSize="16sp" />
-        <TextView android:id="@+id/item_subtitle" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="2dp" android:textSize="13sp" />
-        <TextView android:id="@+id/item_value" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:textStyle="bold" />
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:gravity="end"
-            android:orientation="horizontal">
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/item_secondary"
-                style="@style/Widget.Material3.Button.TextButton"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Editar" />
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/item_aux"
-                style="@style/Widget.Material3.Button.TextButton"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Ação" />
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/item_delete"
-                style="@style/Widget.Material3.Button.TextButton"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Excluir" />
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto"
+    style="@style/Widget.StopGastos.Card" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="9dp">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical" android:orientation="horizontal" android:padding="14dp">
+        <View android:id="@+id/item_indicator" android:layout_width="4dp" android:layout_height="42dp" android:background="@drawable/bg_indicator" />
+        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginStart="12dp" android:layout_weight="1" android:orientation="vertical">
+            <TextView android:id="@+id/item_title" android:layout_width="match_parent" android:layout_height="wrap_content" android:textColor="@color/text_primary" android:textStyle="bold" android:textSize="15sp" />
+            <TextView android:id="@+id/item_subtitle" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="3dp" android:textColor="@color/text_muted" android:textSize="12sp" />
+            <TextView android:id="@+id/item_value" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:textColor="@color/text_primary" android:textStyle="bold" android:textSize="14sp" />
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="end" android:orientation="horizontal">
+                <com.google.android.material.button.MaterialButton android:id="@+id/item_secondary" style="@style/Widget.StopGastos.Button.Text" android:layout_width="wrap_content" android:layout_height="40dp" android:text="Editar" />
+                <com.google.android.material.button.MaterialButton android:id="@+id/item_aux" style="@style/Widget.StopGastos.Button.Text" android:layout_width="wrap_content" android:layout_height="40dp" android:text="Ação" />
+                <com.google.android.material.button.MaterialButton android:id="@+id/item_delete" style="@style/Widget.StopGastos.Button.Text" android:layout_width="wrap_content" android:layout_height="40dp" android:text="Excluir" android:textColor="@color/expense" />
+            </LinearLayout>
         </LinearLayout>
     </LinearLayout>
 </com.google.android.material.card.MaterialCardView>

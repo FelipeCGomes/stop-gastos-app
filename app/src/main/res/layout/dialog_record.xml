@@ -1,31 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content">
-    <LinearLayout
-        android:id="@+id/dialog_container"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:padding="8dp">
-
-        <EditText android:id="@+id/field1" android:layout_width="match_parent" android:layout_height="wrap_content" />
-        <EditText android:id="@+id/field2" android:layout_width="match_parent" android:layout_height="wrap_content" />
-        <EditText android:id="@+id/field3" android:layout_width="match_parent" android:layout_height="wrap_content" />
-        <EditText android:id="@+id/field4" android:layout_width="match_parent" android:layout_height="wrap_content" />
-        <EditText android:id="@+id/field5" android:layout_width="match_parent" android:layout_height="wrap_content" />
-        <EditText android:id="@+id/field6" android:layout_width="match_parent" android:layout_height="wrap_content" />
-
-        <Spinner android:id="@+id/spinner1" android:layout_width="match_parent" android:layout_height="wrap_content" />
-        <Spinner android:id="@+id/spinner2" android:layout_width="match_parent" android:layout_height="wrap_content" />
-        <Spinner android:id="@+id/spinner3" android:layout_width="match_parent" android:layout_height="wrap_content" />
-        <Spinner android:id="@+id/spinner4" android:layout_width="match_parent" android:layout_height="wrap_content" />
-        <Spinner android:id="@+id/spinner5" android:layout_width="match_parent" android:layout_height="wrap_content" />
-
-        <CheckBox
-            android:id="@+id/check1"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Ativo" />
+    android:layout_width="match_parent" android:layout_height="wrap_content" android:background="@color/surface">
+    <LinearLayout android:id="@+id/dialog_container" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="10dp">
+        <EditText android:id="@+id/field1" style="@style/Widget.StopGastos.Input" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="8dp" />
+        <EditText android:id="@+id/field2" style="@style/Widget.StopGastos.Input" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="8dp" />
+        <EditText android:id="@+id/field3" style="@style/Widget.StopGastos.Input" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="8dp" />
+        <EditText android:id="@+id/field4" style="@style/Widget.StopGastos.Input" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="8dp" />
+        <EditText android:id="@+id/field5" style="@style/Widget.StopGastos.Input" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="8dp" />
+        <EditText android:id="@+id/field6" style="@style/Widget.StopGastos.Input" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="8dp" />
+        <Spinner android:id="@+id/spinner1" android:layout_width="match_parent" android:layout_height="50dp" android:layout_marginBottom="8dp" android:background="@drawable/bg_input" android:paddingHorizontal="12dp" />
+        <Spinner android:id="@+id/spinner2" android:layout_width="match_parent" android:layout_height="50dp" android:layout_marginBottom="8dp" android:background="@drawable/bg_input" android:paddingHorizontal="12dp" />
+        <Spinner android:id="@+id/spinner3" android:layout_width="match_parent" android:layout_height="50dp" android:layout_marginBottom="8dp" android:background="@drawable/bg_input" android:paddingHorizontal="12dp" />
+        <Spinner android:id="@+id/spinner4" android:layout_width="match_parent" android:layout_height="50dp" android:layout_marginBottom="8dp" android:background="@drawable/bg_input" android:paddingHorizontal="12dp" />
+        <Spinner android:id="@+id/spinner5" android:layout_width="match_parent" android:layout_height="50dp" android:layout_marginBottom="8dp" android:background="@drawable/bg_input" android:paddingHorizontal="12dp" />
+        <CheckBox android:id="@+id/check1" android:layout_width="match_parent" android:layout_height="wrap_content" android:buttonTint="@color/primary" android:paddingVertical="8dp" android:text="Ativo" android:textColor="@color/text_primary" />
     </LinearLayout>
 </ScrollView>
