@@ -7,47 +7,356 @@
     android:clipToPadding="false"
     android:fillViewport="true">
 
-    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:paddingStart="@dimen/screen_padding" android:paddingEnd="@dimen/screen_padding" android:paddingTop="20dp" android:paddingBottom="24dp">
-        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="VISÃO GERAL" android:textAppearance="@style/TextAppearance.StopGastos.Eyebrow" />
-        <TextView android:id="@+id/dashboard_title" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="Seu mês em um relance" android:textAppearance="@style/TextAppearance.StopGastos.Title" />
-        <TextView android:id="@+id/dashboard_month" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:textAppearance="@style/TextAppearance.StopGastos.BodyMuted" />
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingStart="@dimen/screen_padding"
+        android:paddingTop="20dp"
+        android:paddingEnd="@dimen/screen_padding"
+        android:paddingBottom="28dp">
 
-        <com.google.android.material.card.MaterialCardView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="18dp" app:cardBackgroundColor="@color/transparent" app:cardCornerRadius="18dp" app:cardElevation="0dp" app:strokeWidth="0dp">
-            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:background="@drawable/bg_hero_gradient" android:orientation="vertical" android:padding="22dp">
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="SALDO DO MÊS" android:textColor="#B9B1F7" android:textSize="10sp" android:textStyle="bold" android:letterSpacing="0.09" />
-                <TextView android:id="@+id/dashboard_balance" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:text="R$ 0,00" android:textColor="@color/white" android:textSize="32sp" android:textStyle="bold" />
-                <TextView android:id="@+id/dashboard_savings" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="10dp" android:background="@drawable/bg_input" android:paddingHorizontal="10dp" android:paddingVertical="6dp" android:text="Taxa de economia 0%" android:textColor="@color/text_primary" android:textSize="11sp" android:textStyle="bold" />
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="PAINEL FINANCEIRO"
+            android:textAppearance="@style/TextAppearance.StopGastos.Eyebrow" />
+
+        <TextView
+            android:id="@+id/dashboard_title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="Seu dinheiro, sem complicação"
+            android:textAppearance="@style/TextAppearance.StopGastos.Title" />
+
+        <TextView
+            android:id="@+id/dashboard_month"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="5dp"
+            android:textAppearance="@style/TextAppearance.StopGastos.BodyMuted" />
+
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/dashboard_hero"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="18dp"
+            app:cardBackgroundColor="@color/transparent"
+            app:cardCornerRadius="22dp"
+            app:cardElevation="0dp"
+            app:strokeWidth="0dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_hero_gradient"
+                android:orientation="vertical"
+                android:padding="22dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="SALDO DISPONÍVEL NO MÊS"
+                    android:textColor="@color/hero_label"
+                    android:textSize="10sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.08" />
+
+                <TextView
+                    android:id="@+id/dashboard_balance"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="7dp"
+                    android:text="R$ 0,00"
+                    android:textColor="@color/hero_text"
+                    android:textSize="32sp"
+                    android:textStyle="bold" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="13dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:id="@+id/dashboard_savings"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:background="@drawable/bg_hero_chip"
+                        android:text="Economia 0%"
+                        android:textColor="@color/hero_chip_text"
+                        android:textSize="11sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/dashboard_balance_status"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="10dp"
+                        android:layout_weight="1"
+                        android:gravity="end"
+                        android:text="Acompanhando o mês"
+                        android:textColor="@color/hero_label"
+                        android:textSize="11sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
-        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:baselineAligned="false" android:orientation="horizontal">
-            <com.google.android.material.card.MaterialCardView style="@style/Widget.StopGastos.Card" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" app:cardBackgroundColor="@color/income_soft">
-                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="16dp">
-                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="ENTRADAS" android:textColor="@color/income" android:textSize="10sp" android:textStyle="bold" />
-                    <TextView android:id="@+id/dashboard_income" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:text="R$ 0,00" android:textColor="@color/text_primary" android:textSize="18sp" android:textStyle="bold" />
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:baselineAligned="false"
+            android:orientation="horizontal">
+
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/dashboard_income_card"
+                style="@style/Widget.StopGastos.Card"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                app:cardBackgroundColor="@color/income_soft">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="↗  ENTRADAS"
+                        android:textColor="@color/income"
+                        android:textSize="10sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/dashboard_income"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="R$ 0,00"
+                        android:textColor="@color/text_primary"
+                        android:textSize="18sp"
+                        android:textStyle="bold" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
-            <Space android:layout_width="10dp" android:layout_height="1dp" />
-            <com.google.android.material.card.MaterialCardView style="@style/Widget.StopGastos.Card" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" app:cardBackgroundColor="@color/expense_soft">
-                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="16dp">
-                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="SAÍDAS" android:textColor="@color/expense" android:textSize="10sp" android:textStyle="bold" />
-                    <TextView android:id="@+id/dashboard_expense" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:text="R$ 0,00" android:textColor="@color/text_primary" android:textSize="18sp" android:textStyle="bold" />
+
+            <Space
+                android:layout_width="10dp"
+                android:layout_height="1dp" />
+
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/dashboard_expense_card"
+                style="@style/Widget.StopGastos.Card"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                app:cardBackgroundColor="@color/expense_soft">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="↘  SAÍDAS"
+                        android:textColor="@color/expense"
+                        android:textSize="10sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/dashboard_expense"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="R$ 0,00"
+                        android:textColor="@color/text_primary"
+                        android:textSize="18sp"
+                        android:textStyle="bold" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
         </LinearLayout>
 
-        <com.google.android.material.card.MaterialCardView style="@style/Widget.StopGastos.Card" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="14dp">
-            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="18dp">
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="TENDÊNCIA" android:textAppearance="@style/TextAppearance.StopGastos.Eyebrow" />
-                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="Receitas x despesas" android:textAppearance="@style/TextAppearance.StopGastos.Section" />
-                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="3dp" android:text="Últimos 6 meses" android:textAppearance="@style/TextAppearance.StopGastos.BodyMuted" />
-                <com.example.stop_fgastos.presentation.dashboard.FinanceTrendChartView android:id="@+id/dashboard_trend_chart" android:layout_width="match_parent" android:layout_height="190dp" android:layout_marginTop="12dp" />
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/dashboard_health_card"
+            style="@style/Widget.StopGastos.Card"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="17dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="42dp"
+                        android:layout_height="42dp"
+                        android:background="@drawable/bg_input"
+                        android:gravity="center"
+                        android:text="✦"
+                        android:textColor="@color/primary"
+                        android:textSize="20sp"
+                        android:textStyle="bold" />
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="12dp"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:id="@+id/dashboard_health_title"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="Saúde do mês"
+                            android:textAppearance="@style/TextAppearance.StopGastos.Section" />
+
+                        <TextView
+                            android:id="@+id/dashboard_health_detail"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:text="Comece a lançar suas movimentações."
+                            android:textAppearance="@style/TextAppearance.StopGastos.BodyMuted" />
+                    </LinearLayout>
+
+                    <TextView
+                        android:id="@+id/dashboard_health_score"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="0/100"
+                        android:textColor="@color/primary"
+                        android:textSize="14sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <com.google.android.material.progressindicator.LinearProgressIndicator
+                    android:id="@+id/dashboard_health_progress"
+                    android:layout_width="match_parent"
+                    android:layout_height="8dp"
+                    android:layout_marginTop="14dp"
+                    android:max="100"
+                    android:progress="0"
+                    app:indicatorColor="@color/primary"
+                    app:trackColor="@color/surface_3"
+                    app:trackCornerRadius="8dp" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
-        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="20dp" android:text="ATIVIDADE" android:textAppearance="@style/TextAppearance.StopGastos.Eyebrow" />
-        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="3dp" android:text="Últimos lançamentos" android:textAppearance="@style/TextAppearance.StopGastos.Section" />
-        <TextView android:id="@+id/dashboard_empty" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:background="@drawable/bg_input" android:gravity="center" android:padding="24dp" android:text="✨ Seus lançamentos aparecerão aqui." android:textColor="@color/text_muted" android:textSize="13sp" android:visibility="gone" />
-        <androidx.recyclerview.widget.RecyclerView android:id="@+id/dashboard_recycler" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="10dp" android:nestedScrollingEnabled="false" android:clipToPadding="false" />
+        <com.google.android.material.card.MaterialCardView
+            style="@style/Widget.StopGastos.Card"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="14dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="18dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="EVOLUÇÃO"
+                    android:textAppearance="@style/TextAppearance.StopGastos.Eyebrow" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="Receitas x despesas"
+                    android:textAppearance="@style/TextAppearance.StopGastos.Section" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="3dp"
+                    android:text="Valores dos últimos 6 meses • toque no gráfico para detalhar"
+                    android:textAppearance="@style/TextAppearance.StopGastos.BodyMuted" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="●  Entradas"
+                        android:textColor="@color/income"
+                        android:textSize="11sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="16dp"
+                        android:text="●  Saídas"
+                        android:textColor="@color/expense"
+                        android:textSize="11sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <com.example.stop_fgastos.presentation.dashboard.FinanceTrendChartView
+                    android:id="@+id/dashboard_trend_chart"
+                    android:layout_width="match_parent"
+                    android:layout_height="245dp"
+                    android:layout_marginTop="10dp" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="22dp"
+            android:text="ATIVIDADE"
+            android:textAppearance="@style/TextAppearance.StopGastos.Eyebrow" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="3dp"
+            android:text="Últimos lançamentos"
+            android:textAppearance="@style/TextAppearance.StopGastos.Section" />
+
+        <TextView
+            android:id="@+id/dashboard_empty"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:background="@drawable/bg_input"
+            android:gravity="center"
+            android:padding="24dp"
+            android:text="✨ Ainda não há lançamentos neste período."
+            android:textColor="@color/text_muted"
+            android:textSize="13sp"
+            android:visibility="gone" />
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/dashboard_recycler"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:clipToPadding="false"
+            android:nestedScrollingEnabled="false" />
     </LinearLayout>
 </androidx.core.widget.NestedScrollView>
