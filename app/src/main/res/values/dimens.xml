@@ -1,5 +1,9 @@
 <resources>
-    <dimen name="screen_padding">12dp</dimen>
-    <dimen name="section_gap">12dp</dimen>
+    <dimen name="screen_padding">14dp</dimen>
+    <dimen name="section_gap">10dp</dimen>
     <dimen name="card_radius">18dp</dimen>
+    <dimen name="control_height">44dp</dimen>
+    <dimen name="top_bar_height">66dp</dimen>
+    <dimen name="bottom_nav_height">78dp</dimen>
+    <dimen name="content_bottom_padding">18dp</dimen>
 </resources>
