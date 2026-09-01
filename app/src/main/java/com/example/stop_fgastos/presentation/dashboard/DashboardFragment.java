@@ -46,6 +46,7 @@ public final class DashboardFragment extends Fragment {
     private TextView empty;
     private ImageButton privacyButton;
     private boolean privacyEnabled;
+    private boolean showPositiveValues;
     private FinanceState latestState = new FinanceState();
     private LinearProgressIndicator healthProgress;
     private FinanceTrendChartView trendChart;
@@ -75,6 +76,7 @@ public final class DashboardFragment extends Fragment {
         trendChart = view.findViewById(R.id.dashboard_trend_chart);
 
         privacyEnabled = UiPrivacy.enabled(requireContext());
+        showPositiveValues = UiPrivacy.showPositiveValues(requireContext());
         renderPrivacyIcon();
         privacyButton.setOnClickListener(v -> {
             privacyEnabled = !privacyEnabled;
@@ -118,7 +120,11 @@ public final class DashboardFragment extends Fragment {
 
         month.setText(UiFormat.month(currentMonth));
         balance.setText(privateMoney(summary.balance()));
-        income.setText(privateMoney(summary.income()));
+        income.setText(
+                showPositiveValues
+                        ? privateMoney(summary.income())
+                        : "Oculto"
+        );
         expense.setText(privateMoney(summary.expense()));
 
         if (privacyEnabled) {
@@ -164,6 +170,7 @@ public final class DashboardFragment extends Fragment {
         }
 
         trendChart.setPrivacyEnabled(privacyEnabled);
+        trendChart.setShowPositiveValues(showPositiveValues);
         trendChart.setSeries(labels, trendIncome, trendExpense);
 
         List<FinanceRecord> transactions = new ArrayList<>(
@@ -183,14 +190,22 @@ public final class DashboardFragment extends Fragment {
         for (int i = 0; i < Math.min(8, transactions.size()); i++) {
             FinanceRecord tx = transactions.get(i);
 
+            boolean positive = !"expense".equals(tx.text("type"));
+            String displayValue;
+            if (positive && !showPositiveValues) {
+                displayValue = "";
+            } else if (privacyEnabled) {
+                displayValue = "••••";
+            } else {
+                displayValue = (positive ? "+ " : "- ")
+                        + UiFormat.money(tx.number("amount"));
+            }
+
             rows.add(new DisplayRow(
                     tx,
                     tx.text("description", "Lançamento"),
                     tx.text("date") + " · " + tx.text("payment"),
-                    privacyEnabled
-                            ? "••••"
-                            : ("expense".equals(tx.text("type")) ? "- " : "+ ")
-                            + UiFormat.money(tx.number("amount")),
+                    displayValue,
                     "",
                     false
             ));
