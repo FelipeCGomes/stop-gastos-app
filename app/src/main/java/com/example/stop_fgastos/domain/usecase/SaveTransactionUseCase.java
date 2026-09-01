@@ -128,6 +128,14 @@ public final class SaveTransactionUseCase {
             map.put("sourceRecurringId", input.sourceRecurringId);
             map.put("sourceType", input.sourceType);
             map.put("billId", input.billId);
+
+            if ("expense".equals(input.type)
+                    && "recurringExpense".equals(input.sourceType)) {
+                map.put("paid", false);
+                map.put("dueDate", recordDate);
+                map.put("originalAmount", amounts.get(index));
+            }
+
             map.put("createdAt", createdAt);
             map.put("updatedAt", now);
             records.add(new FinanceRecord(id, map));

@@ -14,6 +14,7 @@ import com.example.stop_fgastos.domain.model.FinanceRecord;
 import com.example.stop_fgastos.domain.model.FinanceSection;
 import com.example.stop_fgastos.domain.model.FinanceState;
 import com.example.stop_fgastos.domain.model.TransactionInput;
+import com.google.android.material.button.MaterialButton;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 import java.time.Instant;
@@ -140,7 +141,28 @@ public final class RecordDialogs {
             FinanceRecord existing,
             TransactionHandler handler
     ) {
-        Form form = new Form(context);
+        View root = LayoutInflater.from(context)
+                .inflate(R.layout.dialog_transaction, null, false);
+
+        android.widget.TextView title = root.findViewById(R.id.transaction_dialog_title);
+        EditText descriptionField = root.findViewById(R.id.tx_description);
+        EditText amountField = root.findViewById(R.id.tx_amount);
+        EditText dateField = root.findViewById(R.id.tx_date);
+        EditText installmentsField = root.findViewById(R.id.tx_installments);
+        EditText tagsField = root.findViewById(R.id.tx_tags);
+        EditText notesField = root.findViewById(R.id.tx_notes);
+
+        Spinner typeSpinner = root.findViewById(R.id.tx_type);
+        Spinner paymentSpinner = root.findViewById(R.id.tx_payment);
+        Spinner categorySpinner = root.findViewById(R.id.tx_category);
+        Spinner accountSpinner = root.findViewById(R.id.tx_account);
+        Spinner cardSpinner = root.findViewById(R.id.tx_card);
+        View creditSection = root.findViewById(R.id.tx_credit_section);
+
+        MaterialButton cancel = root.findViewById(R.id.tx_cancel);
+        MaterialButton save = root.findViewById(R.id.tx_save);
+
+        title.setText(existing == null ? "Novo lançamento" : "Editar lançamento");
 
         String description = existing == null ? "" : existing.text("description");
         double total = existing == null
@@ -149,72 +171,174 @@ public final class RecordDialogs {
                 ? existing.number("purchaseTotal")
                 : existing.number("amount"));
 
-        form.field(0, "Descrição", description, false);
-        form.field(1, "Valor total", total <= 0 ? "" : String.valueOf(total), true);
-        form.field(2, "Data da compra (AAAA-MM-DD)",
+        descriptionField.setText(description);
+        amountField.setText(total <= 0 ? "" : String.valueOf(total));
+        dateField.setText(
                 existing == null
                         ? LocalDate.now().toString()
-                        : existing.text("purchaseDate", existing.text("date")),
-                false);
-        form.field(3, "Parcelas", existing == null
-                ? "1"
-                : String.valueOf(Math.max(1, existing.integer("installmentCount"))), true);
-        form.field(4, "Tags", existing == null ? "" : existing.text("tags"), false);
-        form.field(5, "Observações", existing == null ? "" : existing.text("notes"), false);
+                        : existing.text("purchaseDate", existing.text("date"))
+        );
+        installmentsField.setText(
+                existing == null
+                        ? "1"
+                        : String.valueOf(Math.max(1, existing.integer("installmentCount")))
+        );
+        tagsField.setText(existing == null ? "" : existing.text("tags"));
+        notesField.setText(existing == null ? "" : existing.text("notes"));
 
-        form.spinner(context, 0, List.of(
-                new Choice("Despesa", "expense"),
-                new Choice("Receita", "income")
-        ), existing == null ? "expense" : existing.text("type", "expense"));
+        setupChoiceSpinner(
+                context,
+                typeSpinner,
+                List.of(
+                        new Choice("Despesa", "expense"),
+                        new Choice("Receita", "income")
+                ),
+                existing == null ? "expense" : existing.text("type", "expense")
+        );
 
-        form.spinner(context, 1, List.of(
-                new Choice("Pix", "Pix"),
-                new Choice("Débito", "Débito"),
-                new Choice("Dinheiro", "Dinheiro"),
-                new Choice("Cartão de crédito", "Cartão de crédito"),
-                new Choice("Vale-refeição", "Vale-refeição"),
-                new Choice("Vale-alimentação", "Vale-alimentação"),
-                new Choice("Vale-combustível", "Vale-combustível")
-        ), existing == null ? "Pix" : existing.text("payment", "Pix"));
+        setupChoiceSpinner(
+                context,
+                paymentSpinner,
+                paymentChoices(),
+                existing == null ? "Pix" : existing.text("payment", "Pix")
+        );
 
-        List<Choice> categories = categoryChoices(state);
-        form.spinner(context, 2, categories,
-                existing == null ? "outros" : existing.text("category", "outros"));
-        form.spinner(context, 3, accountChoices(state),
-                existing == null ? "" : existing.text("accountId"));
-        form.spinner(context, 4, cardChoices(state),
-                existing == null ? "" : existing.text("cardId"));
+        setupChoiceSpinner(
+                context,
+                categorySpinner,
+                categoryChoices(state),
+                existing == null ? "outros" : existing.text("category", "outros")
+        );
 
-        new MaterialAlertDialogBuilder(context)
-                .setTitle(existing == null ? "Novo lançamento" : "Editar lançamento")
-                .setView(form.root)
-                .setNegativeButton("Cancelar", null)
-                .setPositiveButton("Salvar", (dialog, which) -> {
-                    TransactionInput input = new TransactionInput();
-                    input.description = form.fields[0].getText().toString().trim();
-                    input.total = UiFormat.parseMoney(form.fields[1].getText().toString());
-                    input.purchaseDate = form.fields[2].getText().toString().trim();
-                    input.installments = Math.max(
-                            1,
-                            (int) UiFormat.parseMoney(form.fields[3].getText().toString())
-                    );
-                    input.tags = form.fields[4].getText().toString().trim();
-                    input.notes = form.fields[5].getText().toString().trim();
-                    input.type = form.selected(0).value;
-                    input.payment = form.selected(1).value;
-                    input.category = form.selected(2).value;
-                    input.accountId = form.selected(3).value;
-                    input.cardId = form.selected(4).value;
+        setupChoiceSpinner(
+                context,
+                accountSpinner,
+                accountChoices(state),
+                existing == null ? "" : existing.text("accountId")
+        );
 
-                    if (input.description.isBlank() || input.total <= 0.0) return;
-                    try {
-                        LocalDate.parse(input.purchaseDate);
-                    } catch (Exception error) {
-                        return;
+        setupChoiceSpinner(
+                context,
+                cardSpinner,
+                cardChoices(state),
+                existing == null ? "" : existing.text("cardId")
+        );
+
+        Runnable updateCreditVisibility = () -> {
+            Choice payment = selectedChoice(paymentSpinner);
+            boolean credit = "Cartão de crédito".equals(payment.value);
+            creditSection.setVisibility(credit ? View.VISIBLE : View.GONE);
+            if (!credit) {
+                installmentsField.setText("1");
+            }
+        };
+
+        paymentSpinner.setOnItemSelectedListener(
+                new android.widget.AdapterView.OnItemSelectedListener() {
+                    @Override
+                    public void onItemSelected(
+                            android.widget.AdapterView<?> parent,
+                            View view,
+                            int position,
+                            long id
+                    ) {
+                        updateCreditVisibility.run();
                     }
-                    handler.onSave(input);
-                })
-                .show();
+
+                    @Override
+                    public void onNothingSelected(android.widget.AdapterView<?> parent) {}
+                }
+        );
+        updateCreditVisibility.run();
+
+        androidx.appcompat.app.AlertDialog dialog =
+                new MaterialAlertDialogBuilder(context)
+                        .setView(root)
+                        .create();
+
+        cancel.setOnClickListener(v -> dialog.dismiss());
+
+        save.setOnClickListener(v -> {
+            TransactionInput input = new TransactionInput();
+            input.description = descriptionField.getText().toString().trim();
+            input.total = UiFormat.parseMoney(amountField.getText().toString());
+            input.purchaseDate = dateField.getText().toString().trim();
+
+            try {
+                input.installments = Math.max(
+                        1,
+                        Integer.parseInt(
+                                installmentsField.getText().toString().trim().isBlank()
+                                        ? "1"
+                                        : installmentsField.getText().toString().trim()
+                        )
+                );
+            } catch (Exception ignored) {
+                input.installments = 1;
+            }
+
+            input.tags = tagsField.getText().toString().trim();
+            input.notes = notesField.getText().toString().trim();
+            input.type = selectedChoice(typeSpinner).value;
+            input.payment = selectedChoice(paymentSpinner).value;
+            input.category = selectedChoice(categorySpinner).value;
+            input.accountId = selectedChoice(accountSpinner).value;
+            input.cardId = selectedChoice(cardSpinner).value;
+
+            if (input.description.isBlank()) {
+                descriptionField.setError("Informe a descrição.");
+                descriptionField.requestFocus();
+                return;
+            }
+
+            if (input.total <= 0.0) {
+                amountField.setError("Informe um valor maior que zero.");
+                amountField.requestFocus();
+                return;
+            }
+
+            try {
+                LocalDate.parse(input.purchaseDate);
+            } catch (Exception error) {
+                dateField.setError("Use o formato AAAA-MM-DD.");
+                dateField.requestFocus();
+                return;
+            }
+
+            handler.onSave(input);
+            dialog.dismiss();
+        });
+
+        dialog.show();
+    }
+
+    private static void setupChoiceSpinner(
+            Context context,
+            Spinner spinner,
+            List<Choice> choices,
+            String selected
+    ) {
+        ArrayAdapter<Choice> adapter = new ArrayAdapter<>(
+                context,
+                android.R.layout.simple_spinner_item,
+                choices
+        );
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinner.setAdapter(adapter);
+
+        int selectedIndex = 0;
+        for (int i = 0; i < choices.size(); i++) {
+            if (choices.get(i).value.equals(selected)) {
+                selectedIndex = i;
+                break;
+            }
+        }
+        spinner.setSelection(selectedIndex);
+    }
+
+    private static Choice selectedChoice(Spinner spinner) {
+        Object value = spinner.getSelectedItem();
+        return value instanceof Choice ? (Choice) value : new Choice("", "");
     }
 
     public static void record(

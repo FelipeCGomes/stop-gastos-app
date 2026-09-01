@@ -36,7 +36,10 @@ public final class BillPaymentDialog {
 
         double originalAmount = bill.number("amount");
         LocalDate today = LocalDate.now();
-        LocalDate dueDate = parseDate(bill.text("dueDate"), today);
+        LocalDate dueDate = parseDate(
+                bill.text("dueDate", bill.text("date")),
+                today
+        );
 
         description.setText(bill.text("description", "Conta"));
         original.setText("Valor original: " + UiFormat.money(originalAmount));

@@ -20,6 +20,7 @@ import com.example.stop_fgastos.domain.model.FinanceRecord;
 import com.example.stop_fgastos.domain.model.FinanceSection;
 import com.example.stop_fgastos.domain.model.FinanceState;
 import com.example.stop_fgastos.domain.model.MonthlySummary;
+import com.example.stop_fgastos.presentation.common.BillPaymentDialog;
 import com.example.stop_fgastos.presentation.common.DisplayRow;
 import com.example.stop_fgastos.presentation.common.RecordAdapter;
 import com.example.stop_fgastos.presentation.common.RecordDialogs;
@@ -28,7 +29,9 @@ import com.example.stop_fgastos.presentation.common.UiMotion;
 import com.example.stop_fgastos.presentation.common.UiPrivacy;
 import com.example.stop_fgastos.presentation.common.ViewModelAccess;
 import com.example.stop_fgastos.presentation.main.MainViewModel;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
+import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -77,6 +80,25 @@ public final class TransactionsFragment extends Fragment {
             @Override
             public void onPrimary(DisplayRow row) {
                 openEditor(row.record);
+            }
+
+            @Override
+            public void onSecondary(DisplayRow row) {
+                FinanceRecord transaction = row.record;
+                if (!isPaymentManaged(transaction)) return;
+
+                if (transaction.bool("paid")) {
+                    confirmUndoPayment(transaction);
+                } else {
+                    BillPaymentDialog.show(
+                            requireContext(),
+                            transaction,
+                            paidAmount -> viewModel.payTransaction(
+                                    transaction,
+                                    paidAmount
+                            )
+                    );
+                }
             }
 
             @Override
@@ -174,21 +196,100 @@ public final class TransactionsFragment extends Fragment {
                     ? " · " + tx.integer("installmentNo") + "/" + tx.integer("installmentCount")
                     : "";
 
+            boolean paymentManaged = isPaymentManaged(tx);
+            boolean paid = tx.bool("paid");
+
             String value = !expense && !showPositive
                     ? ""
                     : (expense ? "- " : "+ ") + UiFormat.money(tx.number("amount"));
 
+            String subtitle = category + " · " + tx.text("date") + installment;
+            if (paymentManaged) {
+                if (paid) {
+                    subtitle += " · Pago em " + tx.text("paidAt");
+                    double paidAmount = tx.number("paidAmount");
+                    if (paidAmount > 0) {
+                        subtitle += " · Valor pago: " + UiFormat.money(paidAmount);
+                    }
+                    if (tx.number("lateFeeAmount") > 0.005) {
+                        subtitle += " · Juros: "
+                                + UiFormat.money(tx.number("lateFeeAmount"));
+                    }
+                } else {
+                    LocalDate dueDate = parseDate(
+                            tx.text("dueDate", tx.text("date"))
+                    );
+                    subtitle += dueDate.isBefore(LocalDate.now())
+                            ? " · Vencido"
+                            : " · Pendente";
+                }
+            }
+
+            String paymentAction = paymentManaged
+                    ? (paid ? "Desfazer pagamento" : "Registrar pagamento")
+                    : "";
+
             rows.add(new DisplayRow(
                     tx,
                     tx.text("description", "Lançamento"),
-                    category + " · " + tx.text("date") + installment,
+                    subtitle,
                     value,
                     "Editar",
+                    paymentAction,
                     true
             ));
         }
 
         adapter.submit(rows);
+    }
+
+    private boolean isPaymentManaged(FinanceRecord transaction) {
+        return "expense".equals(transaction.text("type"))
+                && (
+                "recurringExpense".equals(transaction.text("sourceType"))
+                        || transaction.fields().containsKey("paid")
+                        || !transaction.text("paidAt").isBlank()
+        );
+    }
+
+    private void confirmUndoPayment(FinanceRecord transaction) {
+        double paidAmount = transaction.number("paidAmount") > 0
+                ? transaction.number("paidAmount")
+                : transaction.number("amount");
+
+        StringBuilder message = new StringBuilder();
+        message.append("Pagamento registrado em ")
+                .append(transaction.text("paidAt"))
+                .append(" no valor de ")
+                .append(UiFormat.money(paidAmount))
+                .append(".");
+
+        if (transaction.number("lateFeeAmount") > 0.005) {
+            message.append("\nJuros/acréscimos: ")
+                    .append(UiFormat.money(transaction.number("lateFeeAmount")))
+                    .append(".");
+        }
+
+        message.append("\n\nO lançamento voltará para Pendente e o valor original será restaurado.");
+
+        new MaterialAlertDialogBuilder(requireContext())
+                .setTitle("Desfazer pagamento?")
+                .setMessage(message.toString())
+                .setNegativeButton("Cancelar", null)
+                .setPositiveButton(
+                        "Desfazer",
+                        (dialog, which) ->
+                                viewModel.undoTransactionPayment(transaction)
+                )
+                .show();
+    }
+
+    private LocalDate parseDate(String value) {
+        try {
+            return LocalDate.parse(value);
+        } catch (Exception ignored) {
+            return LocalDate.now();
+        }
     }
 
     private String categoryLabel(String id) {

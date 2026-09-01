@@ -22,6 +22,7 @@ import com.example.stop_fgastos.domain.usecase.RecurringUseCase;
 import com.example.stop_fgastos.domain.usecase.ReportUseCase;
 import com.example.stop_fgastos.domain.usecase.SaveTransactionUseCase;
 import com.example.stop_fgastos.domain.usecase.ShoppingComparisonUseCase;
+import com.example.stop_fgastos.domain.usecase.TransactionPaymentUseCase;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.FirebaseFirestore;
 
@@ -36,6 +37,7 @@ public final class AppContainer {
     public final FamilyUseCase family;
     public final NotificationUseCase notifications;
     public final PayBillUseCase payBill;
+    public final TransactionPaymentUseCase transactionPayment;
     public final ReportUseCase reports;
     public final DeleteAccountUseCase deleteAccount;
 
@@ -62,6 +64,7 @@ public final class AppContainer {
         family = new FamilyUseCase(familyRepository);
         notifications = new NotificationUseCase(notificationRepository);
         payBill = new PayBillUseCase(financeRepository);
+        transactionPayment = new TransactionPaymentUseCase(financeRepository);
         reports = new ReportUseCase();
         deleteAccount = new DeleteAccountUseCase(
                 authRepository,
