@@ -4,7 +4,7 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:padding="8dp">
+    android:padding="12dp">
 
     <TextView
         android:id="@+id/payment_bill_description"
@@ -13,7 +13,7 @@
         android:textAppearance="@style/TextAppearance.StopGastos.Section" />
 
     <com.google.android.material.card.MaterialCardView
-        style="@style/Widget.StopGastos.Card"
+        style="@style/Widget.StopGastos.Card.Flat"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="12dp">
@@ -44,7 +44,7 @@
     <com.google.android.material.textfield.TextInputLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="14dp"
+        android:layout_marginTop="10dp"
         android:hint="Data do pagamento (dd/MM/aa)"
         app:boxBackgroundMode="outline"
         app:boxStrokeColor="@color/primary"
@@ -92,8 +92,8 @@
         android:id="@+id/payment_bill_confirm"
         style="@style/Widget.StopGastos.Button.Primary"
         android:layout_width="match_parent"
-        android:layout_height="48dp"
-        android:layout_marginTop="14dp"
+        android:layout_height="@dimen/control_height"
+        android:layout_marginTop="10dp"
         android:text="Confirmar pagamento"
         app:icon="@drawable/ic_transaction"
         app:iconGravity="textStart"
