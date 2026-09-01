@@ -7,6 +7,7 @@ import android.widget.TextView;
 
 import com.example.stop_fgastos.R;
 import com.example.stop_fgastos.domain.model.FinanceRecord;
+import com.google.android.material.button.MaterialButton;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.textfield.TextInputEditText;
 
@@ -22,7 +23,8 @@ public final class BillPaymentDialog {
     private BillPaymentDialog() {}
 
     public static void show(Context context, FinanceRecord bill, Handler handler) {
-        View view = LayoutInflater.from(context).inflate(R.layout.dialog_bill_payment, null, false);
+        View view = LayoutInflater.from(context)
+                .inflate(R.layout.dialog_bill_payment, null, false);
 
         TextView description = view.findViewById(R.id.payment_bill_description);
         TextView original = view.findViewById(R.id.payment_bill_original);
@@ -30,6 +32,7 @@ public final class BillPaymentDialog {
         TextView paymentDate = view.findViewById(R.id.payment_bill_date);
         TextView adjustment = view.findViewById(R.id.payment_bill_adjustment);
         TextInputEditText amount = view.findViewById(R.id.payment_bill_amount);
+        MaterialButton confirm = view.findViewById(R.id.payment_bill_confirm);
 
         double originalAmount = bill.number("amount");
         LocalDate today = LocalDate.now();
@@ -38,12 +41,15 @@ public final class BillPaymentDialog {
         description.setText(bill.text("description", "Conta"));
         original.setText("Valor original: " + UiFormat.money(originalAmount));
         due.setText("Vencimento: " + dueDate);
-        paymentDate.setText("Pagamento: " + today + " (automático)");
+        paymentDate.setText("Data do pagamento: " + today + " (automática)");
+
         amount.setText(String.format(Locale.US, "%.2f", originalAmount));
         amount.setSelectAllOnFocus(true);
 
         Runnable update = () -> {
-            double paid = UiFormat.parseMoney(amount.getText() == null ? "" : amount.getText().toString());
+            double paid = UiFormat.parseMoney(
+                    amount.getText() == null ? "" : amount.getText().toString()
+            );
             long daysLate = Math.max(0, ChronoUnit.DAYS.between(dueDate, today));
             double difference = paid - originalAmount;
 
@@ -53,61 +59,103 @@ public final class BillPaymentDialog {
             }
 
             if (difference > 0.005) {
-                double rate = originalAmount <= 0 ? 0 : (difference / originalAmount) * 100.0;
+                double rate = originalAmount <= 0
+                        ? 0
+                        : (difference / originalAmount) * 100.0;
+
                 if (daysLate > 0) {
                     adjustment.setText(
-                            "Acréscimo/juros por atraso: " + UiFormat.money(difference)
-                                    + " (" + String.format(Locale.getDefault(), "%.2f%%", rate) + ")"
-                                    + " · " + daysLate + " dia(s) de atraso"
+                            "Valor pago: " + UiFormat.money(paid)
+                                    + "\nJuros/acréscimo: " + UiFormat.money(difference)
+                                    + " (" + String.format(
+                                            Locale.getDefault(),
+                                            "%.2f%%",
+                                            rate
+                                    ) + ")"
+                                    + "\nAtraso: " + daysLate + " dia(s)"
                     );
                 } else {
                     adjustment.setText(
-                            "Acréscimo sobre o valor original: " + UiFormat.money(difference)
-                                    + " (" + String.format(Locale.getDefault(), "%.2f%%", rate) + ")"
+                            "Valor pago: " + UiFormat.money(paid)
+                                    + "\nAcréscimo: " + UiFormat.money(difference)
+                                    + " (" + String.format(
+                                            Locale.getDefault(),
+                                            "%.2f%%",
+                                            rate
+                                    ) + ")"
                     );
                 }
             } else if (difference < -0.005) {
                 adjustment.setText(
-                        "Desconto/diferença: " + UiFormat.money(Math.abs(difference))
-                                + (daysLate > 0 ? " · " + daysLate + " dia(s) após o vencimento" : "")
+                        "Valor pago: " + UiFormat.money(paid)
+                                + "\nDesconto/diferença: "
+                                + UiFormat.money(Math.abs(difference))
+                                + (daysLate > 0
+                                ? "\nPagamento " + daysLate + " dia(s) após o vencimento"
+                                : "")
                 );
             } else {
                 adjustment.setText(
-                        daysLate > 0
-                                ? "Sem acréscimo informado · " + daysLate + " dia(s) de atraso"
-                                : "Pago pelo valor original, sem diferença."
+                        "Valor pago: " + UiFormat.money(paid)
+                                + (daysLate > 0
+                                ? "\nSem acréscimo informado · "
+                                + daysLate + " dia(s) de atraso"
+                                : "\nPago pelo valor original, sem diferença.")
                 );
             }
         };
 
         amount.addTextChangedListener(new android.text.TextWatcher() {
-            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
-            @Override public void onTextChanged(CharSequence s, int start, int before, int count) { update.run(); }
-            @Override public void afterTextChanged(android.text.Editable s) {}
+            @Override
+            public void beforeTextChanged(
+                    CharSequence s,
+                    int start,
+                    int count,
+                    int after
+            ) {}
+
+            @Override
+            public void onTextChanged(
+                    CharSequence s,
+                    int start,
+                    int before,
+                    int count
+            ) {
+                update.run();
+            }
+
+            @Override
+            public void afterTextChanged(android.text.Editable s) {}
         });
+
         update.run();
 
-        androidx.appcompat.app.AlertDialog dialog = new MaterialAlertDialogBuilder(context)
-                .setTitle("Registrar pagamento")
-                .setView(view)
-                .setNegativeButton("Cancelar", null)
-                .setPositiveButton("Confirmar pagamento", null)
-                .create();
+        androidx.appcompat.app.AlertDialog dialog =
+                new MaterialAlertDialogBuilder(context)
+                        .setTitle("Registrar pagamento")
+                        .setView(view)
+                        .setNegativeButton("Cancelar", null)
+                        .create();
 
-        dialog.setOnShowListener(ignored ->
-                dialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_POSITIVE)
-                        .setOnClickListener(button -> {
-                            double paid = UiFormat.parseMoney(
-                                    amount.getText() == null ? "" : amount.getText().toString()
-                            );
-                            if (paid <= 0) {
-                                adjustment.setText("O valor pago precisa ser maior que zero.");
-                                return;
-                            }
-                            handler.onConfirm(paid);
-                            dialog.dismiss();
-                        })
-        );
+        confirm.setOnClickListener(button -> {
+            double paid = UiFormat.parseMoney(
+                    amount.getText() == null ? "" : amount.getText().toString()
+            );
+
+            if (paid <= 0) {
+                adjustment.setText("O valor pago precisa ser maior que zero.");
+                amount.requestFocus();
+                return;
+            }
+
+            handler.onConfirm(paid);
+            dialog.dismiss();
+        });
+
+        amount.setOnEditorActionListener((v, actionId, event) -> {
+            confirm.performClick();
+            return true;
+        });
 
         dialog.show();
     }

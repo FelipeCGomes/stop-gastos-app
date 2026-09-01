@@ -55,12 +55,14 @@
         android:hint="Valor efetivamente pago"
         app:boxBackgroundMode="outline"
         app:boxStrokeColor="@color/primary"
+        app:helperText="Informe o valor final debitado, incluindo juros ou desconto."
         app:startIconDrawable="@drawable/ic_transaction">
 
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/payment_bill_amount"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:imeOptions="actionDone"
             android:inputType="numberDecimal"
             android:maxLines="1" />
     </com.google.android.material.textfield.TextInputLayout>
@@ -74,5 +76,16 @@
         android:padding="12dp"
         android:textColor="@color/text_muted"
         android:textSize="12sp" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/payment_bill_confirm"
+        style="@style/Widget.StopGastos.Button.Primary"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:layout_marginTop="14dp"
+        android:text="Confirmar pagamento"
+        app:icon="@drawable/ic_transaction"
+        app:iconGravity="textStart"
+        app:iconPadding="8dp" />
 
 </LinearLayout>

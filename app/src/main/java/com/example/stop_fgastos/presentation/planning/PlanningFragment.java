@@ -190,7 +190,13 @@ public final class PlanningFragment extends Fragment {
                     billSubtitle.append("Vence ").append(record.text("dueDate")).append(" · ").append(status);
 
                     if (paid) {
+                        double paidAmount = record.number("paidAmount") > 0
+                                ? record.number("paidAmount")
+                                : record.number("amount");
+
                         billSubtitle.append(" em ").append(record.text("paidAt"));
+                        billSubtitle.append(" · Valor pago: ").append(UiFormat.money(paidAmount));
+
                         int daysLate = record.integer("daysLate");
                         double lateFee = record.number("lateFeeAmount");
                         double discount = record.number("discountAmount");
@@ -219,7 +225,7 @@ public final class PlanningFragment extends Fragment {
                                     : ("expense".equals(record.text("type")) ? "- " : "+ ")
                                     + UiFormat.money(displayAmount),
                             "Editar",
-                            paid ? "Desfazer pago" : "Registrar pago",
+                            paid ? "Desfazer pagamento" : "Registrar pagamento",
                             true
                     ));
                     break;
