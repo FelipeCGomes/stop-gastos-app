@@ -79,6 +79,12 @@ fun StopGastosApp(viewModel: MainViewModel) {
 
     var tab by remember { mutableStateOf(AppTab.DASHBOARD) }
 
+    LaunchedEffect(state.signedIn) {
+        if (state.signedIn) {
+            viewModel.ensureRecurringForMonth(YearMonth.now())
+        }
+    }
+
     Scaffold(
         topBar = {
             Surface(shadowElevation = 2.dp) {
@@ -351,9 +357,12 @@ private fun SummaryCard(
 
 @Composable
 private fun TransactionsScreen(finance: FinanceState, viewModel: MainViewModel) {
-    var showAdd by remember { mutableStateOf(false) }
+    var editorOpen by remember { mutableStateOf(false) }
+    var editing by remember { mutableStateOf<TransactionRecord?>(null) }
+
     val records = finance.transactions.sortedWith(
-        compareByDescending<TransactionRecord> { it.date }.thenByDescending { it.updatedAt }
+        compareByDescending<TransactionRecord> { it.date }
+            .thenByDescending { it.updatedAt }
     )
 
     LazyColumn(
@@ -366,7 +375,10 @@ private fun TransactionsScreen(finance: FinanceState, viewModel: MainViewModel) 
                 title = "Lançamentos",
                 subtitle = records.size.toString() + " registros",
                 action = "Novo",
-                onAction = { showAdd = true }
+                onAction = {
+                    editing = null
+                    editorOpen = true
+                }
             )
         }
 
@@ -376,28 +388,71 @@ private fun TransactionsScreen(finance: FinanceState, viewModel: MainViewModel) 
             items(records, key = { it.id }) { transaction ->
                 TransactionCard(
                     transaction = transaction,
+                    onEdit = {
+                        editing = transaction
+                        editorOpen = true
+                    },
                     onDelete = { viewModel.deleteTransaction(transaction) }
                 )
             }
         }
     }
 
-    if (showAdd) {
-        AddTransactionDialog(
-            cards = finance.cards,
-            onDismiss = { showAdd = false },
-            onSave = { type, description, amount, date, category, payment, cardId, installments ->
-                viewModel.addTransaction(
-                    type,
-                    description,
-                    amount,
-                    date,
-                    category,
-                    payment,
-                    cardId,
-                    installments
-                )
-                showAdd = false
+    if (editorOpen) {
+        TransactionEditorDialog(
+            finance = finance,
+            initial = editing,
+            onDismiss = {
+                editorOpen = false
+                editing = null
+            },
+            onSave = {
+                type,
+                description,
+                amount,
+                date,
+                category,
+                payment,
+                cardId,
+                installments,
+                accountId,
+                tags,
+                notes ->
+
+                val current = editing
+                if (current == null) {
+                    viewModel.addTransaction(
+                        type = type,
+                        description = description,
+                        total = amount,
+                        purchaseDate = date,
+                        category = category,
+                        payment = payment,
+                        cardId = cardId,
+                        installmentCount = installments,
+                        accountId = accountId,
+                        tags = tags,
+                        notes = notes
+                    )
+                } else {
+                    viewModel.updateTransaction(
+                        existing = current,
+                        type = type,
+                        description = description,
+                        total = amount,
+                        purchaseDate = date,
+                        category = category,
+                        payment = payment,
+                        cardId = cardId,
+                        installmentCount = installments,
+                        accountId = accountId,
+                        tags = tags,
+                        notes = notes
+                    )
+                }
+
+                editorOpen = false
+                editing = null
             }
         )
     }
@@ -406,6 +461,7 @@ private fun TransactionsScreen(finance: FinanceState, viewModel: MainViewModel) 
 @Composable
 private fun TransactionCard(
     transaction: TransactionRecord,
+    onEdit: (() -> Unit)?,
     onDelete: (() -> Unit)?
 ) {
     Card {
@@ -433,11 +489,23 @@ private fun TransactionCard(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+                if (transaction.tags.isNotBlank() || transaction.notes.isNotBlank()) {
+                    Text(
+                        listOf(transaction.tags, transaction.notes)
+                            .filter { it.isNotBlank() }
+                            .joinToString(" · "),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
             }
 
             Column(horizontalAlignment = Alignment.End) {
                 Text(
-                    (if (transaction.type == "expense") "- " else "+ ") + money(transaction.amount),
+                    (if (transaction.type == "expense") "- " else "+ ") +
+                        money(transaction.amount),
                     fontWeight = FontWeight.Bold,
                     color = if (transaction.type == "expense") {
                         MaterialTheme.colorScheme.error
@@ -445,8 +513,13 @@ private fun TransactionCard(
                         MaterialTheme.colorScheme.primary
                     }
                 )
-                if (onDelete != null) {
-                    TextButton(onClick = onDelete) { Text("Excluir") }
+                Row {
+                    if (onEdit != null) {
+                        TextButton(onClick = onEdit) { Text("Editar") }
+                    }
+                    if (onDelete != null) {
+                        TextButton(onClick = onDelete) { Text("Excluir") }
+                    }
                 }
             }
         }
