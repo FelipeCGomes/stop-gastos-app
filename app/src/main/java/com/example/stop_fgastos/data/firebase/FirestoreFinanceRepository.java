@@ -161,6 +161,51 @@ public final class FirestoreFinanceRepository implements FinanceRepository {
     }
 
     @Override
+    public void saveBillWithTransaction(
+            FinanceRecord bill,
+            FinanceRecord transactionRecord,
+            ResultCallback<Void> callback
+    ) {
+        if (uid.isBlank()) {
+            callback.onError(new IllegalStateException("Usuário não autenticado."));
+            return;
+        }
+
+        DocumentReference billRef = sectionRef(FinanceSection.BILLS);
+        DocumentReference txRef = sectionRef(FinanceSection.TRANSACTIONS);
+
+        db.runTransaction(transaction -> {
+            List<FinanceRecord> bills = new ArrayList<>(
+                    FirebaseRecordMapper.readRecords(transaction.get(billRef))
+            );
+            List<FinanceRecord> transactions = new ArrayList<>(
+                    FirebaseRecordMapper.readRecords(transaction.get(txRef))
+            );
+            upsertInMemory(bills, bill);
+            upsertInMemory(transactions, transactionRecord);
+
+            transaction.set(
+                    billRef,
+                    Map.of(
+                            "value", FirebaseRecordMapper.toMaps(bills),
+                            "updatedAt", FieldValue.serverTimestamp()
+                    ),
+                    SetOptions.merge()
+            );
+            transaction.set(
+                    txRef,
+                    Map.of(
+                            "value", FirebaseRecordMapper.toMaps(transactions),
+                            "updatedAt", FieldValue.serverTimestamp()
+                    ),
+                    SetOptions.merge()
+            );
+            return null;
+        }).addOnSuccessListener(unused -> callback.onSuccess(null))
+                .addOnFailureListener(callback::onError);
+    }
+
+    @Override
     public void deleteAllUserData(String uid, ResultCallback<Void> callback) {
         if (uid == null || uid.isBlank()) {
             callback.onSuccess(null);
