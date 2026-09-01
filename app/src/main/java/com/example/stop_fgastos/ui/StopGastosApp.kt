@@ -320,7 +320,7 @@ private fun DashboardScreen(state: MainUiState) {
             item { EmptyCard("Nenhum lançamento neste mês.") }
         } else {
             items(recent, key = { it.id }) { transaction ->
-                TransactionCard(transaction = transaction, onDelete = null)
+                TransactionCard(transaction = transaction, onEdit = null, onDelete = null)
             }
         }
     }
