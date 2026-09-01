@@ -131,6 +131,7 @@ class FinanceRepository {
     fun saveRecurringReplacingSourceTransactions(
         recurring: RecurringRecord,
         records: List<TransactionRecord>,
+        monthKey: String? = null,
         onResult: (Result<Unit>) -> Unit
     ) {
         mutateTwoSections(
@@ -138,7 +139,10 @@ class FinanceRepository {
             secondSection = "transactions",
             firstMutation = { list -> upsertInMemory(list, recurring.id, recurring.toMap()) },
             secondMutation = { list ->
-                list.removeAll { it["sourceRecurringId"]?.toString() == recurring.id }
+                list.removeAll {
+                    val sameSource = it["sourceRecurringId"]?.toString() == recurring.id
+                    sameSource && (monthKey == null || it["date"]?.toString()?.startsWith(monthKey) == true)
+                }
                 records.forEach { record -> upsertInMemory(list, record.id, record.toMap()) }
             },
             onResult = onResult
