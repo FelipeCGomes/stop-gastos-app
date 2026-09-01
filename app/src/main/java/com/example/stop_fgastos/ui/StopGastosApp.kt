@@ -1,6 +1,7 @@
 package com.example.stop_fgastos.ui
 
 import android.app.Activity
+import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -139,12 +140,17 @@ fun StopGastosApp(viewModel: MainViewModel) {
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            when (tab) {
-                AppTab.DASHBOARD -> DashboardScreen(state)
-                AppTab.TRANSACTIONS -> TransactionsScreen(state.finance, viewModel)
-                AppTab.PLANNING -> PlanningHubScreen(state.finance, viewModel)
-                AppTab.WALLET -> WalletHubScreen(state.finance, viewModel)
-                AppTab.MORE -> MoreHubScreen(state, viewModel)
+            Crossfade(
+                targetState = tab,
+                label = "main_navigation"
+            ) { currentTab ->
+                when (currentTab) {
+                    AppTab.DASHBOARD -> DashboardScreen(state)
+                    AppTab.TRANSACTIONS -> TransactionsScreen(state.finance, viewModel)
+                    AppTab.PLANNING -> PlanningHubScreen(state.finance, viewModel)
+                    AppTab.WALLET -> WalletHubScreen(state.finance, viewModel)
+                    AppTab.MORE -> MoreHubScreen(state, viewModel)
+                }
             }
 
             if (state.loading) {
