@@ -63,9 +63,9 @@ import java.util.Locale
 private enum class AppTab(val label: String, val glyph: String) {
     DASHBOARD("Início", "⌂"),
     TRANSACTIONS("Lançamentos", "↕"),
-    FIXED("Fixos", "↻"),
-    CARDS("Cartões", "▣"),
-    SETTINGS("Ajustes", "⚙")
+    PLANNING("Planejar", "◎"),
+    WALLET("Carteira", "▣"),
+    MORE("Mais", "☰")
 }
 
 @Composable
@@ -129,9 +129,9 @@ fun StopGastosApp(viewModel: MainViewModel) {
             when (tab) {
                 AppTab.DASHBOARD -> DashboardScreen(state)
                 AppTab.TRANSACTIONS -> TransactionsScreen(state.finance, viewModel)
-                AppTab.FIXED -> FixedCostsScreen(state.finance, viewModel)
-                AppTab.CARDS -> CardsScreen(state.finance, viewModel)
-                AppTab.SETTINGS -> SettingsScreen(state, viewModel)
+                AppTab.PLANNING -> PlanningHubScreen(state.finance, viewModel)
+                AppTab.WALLET -> WalletHubScreen(state.finance, viewModel)
+                AppTab.MORE -> MoreHubScreen(state, viewModel)
             }
 
             if (state.loading) {
