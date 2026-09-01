@@ -11,7 +11,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="18dp">
+        android:padding="14dp">
 
         <TextView
             android:id="@+id/transaction_dialog_title"
@@ -19,7 +19,7 @@
             android:layout_height="wrap_content"
             android:text="Novo lançamento"
             android:textColor="@color/text_primary"
-            android:textSize="22sp"
+            android:textSize="18sp"
             android:textStyle="bold" />
 
         <TextView
@@ -32,7 +32,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="18dp"
+            android:layout_marginTop="14dp"
             android:text="INFORMAÇÕES PRINCIPAIS"
             android:textAppearance="@style/TextAppearance.StopGastos.Eyebrow" />
 
@@ -88,7 +88,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="18dp"
+            android:layout_marginTop="14dp"
             android:text="CLASSIFICAÇÃO E PAGAMENTO"
             android:textAppearance="@style/TextAppearance.StopGastos.Eyebrow" />
 
@@ -100,9 +100,9 @@
             android:textAppearance="@style/TextAppearance.StopGastos.BodyMuted" />
 
         <com.google.android.material.card.MaterialCardView
-            style="@style/Widget.StopGastos.Card"
+            style="@style/Widget.StopGastos.Card.Flat"
             android:layout_width="match_parent"
-            android:layout_height="50dp"
+            android:layout_height="@dimen/control_height"
             android:layout_marginTop="4dp"
             app:cardElevation="0dp">
 
@@ -123,9 +123,9 @@
             android:textAppearance="@style/TextAppearance.StopGastos.BodyMuted" />
 
         <com.google.android.material.card.MaterialCardView
-            style="@style/Widget.StopGastos.Card"
+            style="@style/Widget.StopGastos.Card.Flat"
             android:layout_width="match_parent"
-            android:layout_height="50dp"
+            android:layout_height="@dimen/control_height"
             android:layout_marginTop="4dp"
             app:cardElevation="0dp">
 
@@ -146,9 +146,9 @@
             android:textAppearance="@style/TextAppearance.StopGastos.BodyMuted" />
 
         <com.google.android.material.card.MaterialCardView
-            style="@style/Widget.StopGastos.Card"
+            style="@style/Widget.StopGastos.Card.Flat"
             android:layout_width="match_parent"
-            android:layout_height="50dp"
+            android:layout_height="@dimen/control_height"
             android:layout_marginTop="4dp"
             app:cardElevation="0dp">
 
@@ -169,9 +169,9 @@
             android:textAppearance="@style/TextAppearance.StopGastos.BodyMuted" />
 
         <com.google.android.material.card.MaterialCardView
-            style="@style/Widget.StopGastos.Card"
+            style="@style/Widget.StopGastos.Card.Flat"
             android:layout_width="match_parent"
-            android:layout_height="50dp"
+            android:layout_height="@dimen/control_height"
             android:layout_marginTop="4dp"
             app:cardElevation="0dp">
 
@@ -199,9 +199,9 @@
                 android:textAppearance="@style/TextAppearance.StopGastos.BodyMuted" />
 
             <com.google.android.material.card.MaterialCardView
-                style="@style/Widget.StopGastos.Card"
+                style="@style/Widget.StopGastos.Card.Flat"
                 android:layout_width="match_parent"
-                android:layout_height="50dp"
+                android:layout_height="@dimen/control_height"
                 android:layout_marginTop="4dp"
                 app:cardElevation="0dp">
 
@@ -233,7 +233,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="18dp"
+            android:layout_marginTop="14dp"
             android:text="DETALHES OPCIONAIS"
             android:textAppearance="@style/TextAppearance.StopGastos.Eyebrow" />
 
@@ -271,14 +271,14 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="18dp"
+            android:layout_marginTop="14dp"
             android:orientation="horizontal">
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/tx_cancel"
                 style="@style/Widget.StopGastos.Button.Secondary"
                 android:layout_width="0dp"
-                android:layout_height="48dp"
+                android:layout_height="@dimen/control_height"
                 android:layout_weight="1"
                 android:text="Cancelar" />
 
@@ -290,7 +290,7 @@
                 android:id="@+id/tx_save"
                 style="@style/Widget.StopGastos.Button.Primary"
                 android:layout_width="0dp"
-                android:layout_height="48dp"
+                android:layout_height="@dimen/control_height"
                 android:layout_weight="1"
                 android:text="Salvar lançamento" />
         </LinearLayout>
