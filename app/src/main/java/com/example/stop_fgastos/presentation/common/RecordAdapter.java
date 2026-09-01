@@ -17,6 +17,7 @@ import java.util.List;
 public final class RecordAdapter extends RecyclerView.Adapter<RecordAdapter.Holder> {
     public interface Listener {
         void onPrimary(DisplayRow row);
+        default void onSecondary(DisplayRow row) {}
         void onDelete(DisplayRow row);
     }
 
@@ -49,8 +50,11 @@ public final class RecordAdapter extends RecyclerView.Adapter<RecordAdapter.Hold
         holder.value.setText(row.value);
         holder.primary.setText(row.primaryLabel);
         holder.primary.setVisibility(row.primaryLabel.isBlank() ? View.GONE : View.VISIBLE);
+        holder.aux.setText(row.secondaryLabel);
+        holder.aux.setVisibility(row.secondaryLabel.isBlank() ? View.GONE : View.VISIBLE);
         holder.delete.setVisibility(row.deletable ? View.VISIBLE : View.GONE);
         holder.primary.setOnClickListener(v -> listener.onPrimary(row));
+        holder.aux.setOnClickListener(v -> listener.onSecondary(row));
         holder.delete.setOnClickListener(v -> listener.onDelete(row));
     }
 
@@ -64,6 +68,7 @@ public final class RecordAdapter extends RecyclerView.Adapter<RecordAdapter.Hold
         final TextView subtitle;
         final TextView value;
         final MaterialButton primary;
+        final MaterialButton aux;
         final MaterialButton delete;
 
         Holder(@NonNull View itemView) {
@@ -72,6 +77,7 @@ public final class RecordAdapter extends RecyclerView.Adapter<RecordAdapter.Hold
             subtitle = itemView.findViewById(R.id.item_subtitle);
             value = itemView.findViewById(R.id.item_value);
             primary = itemView.findViewById(R.id.item_secondary);
+            aux = itemView.findViewById(R.id.item_aux);
             delete = itemView.findViewById(R.id.item_delete);
         }
     }
