@@ -35,6 +35,7 @@ public final class FinanceTrendChartView extends View {
 
     private float progress = 1f;
     private int selectedIndex = -1;
+    private boolean privacyEnabled;
 
     public FinanceTrendChartView(Context context) {
         this(context, null);
@@ -67,6 +68,11 @@ public final class FinanceTrendChartView extends View {
         tooltipTextPaint.setColor(ContextCompat.getColor(context, R.color.text_primary));
         tooltipTextPaint.setTextSize(dp(9f));
         tooltipTextPaint.setFakeBoldText(true);
+    }
+
+    public void setPrivacyEnabled(boolean enabled) {
+        privacyEnabled = enabled;
+        invalidate();
     }
 
     public void setSeries(
@@ -123,12 +129,14 @@ public final class FinanceTrendChartView extends View {
             canvas.drawLine(left, y, right, y, gridPaint);
 
             double axisValue = max * (1.0 - fraction);
-            canvas.drawText(
-                    compactMoney(axisValue, true),
-                    left - dp(6),
-                    y + dp(3),
-                    axisLabelPaint
-            );
+            if (!privacyEnabled) {
+                canvas.drawText(
+                        compactMoney(axisValue, true),
+                        left - dp(6),
+                        y + dp(3),
+                        axisLabelPaint
+                );
+            }
         }
 
         float slot = (right - left) / count;
@@ -160,7 +168,7 @@ public final class FinanceTrendChartView extends View {
                     expensePaint
             );
 
-            if (in > 0) {
+            if (!privacyEnabled && in > 0) {
                 canvas.drawText(
                         compactMoney(in, false),
                         inLeft + barWidth / 2f,
@@ -169,7 +177,7 @@ public final class FinanceTrendChartView extends View {
                 );
             }
 
-            if (out > 0) {
+            if (!privacyEnabled && out > 0) {
                 canvas.drawText(
                         compactMoney(out, false),
                         outLeft + barWidth / 2f,
@@ -195,7 +203,9 @@ public final class FinanceTrendChartView extends View {
         RectF box = new RectF(left, dp(4), right, dp(48));
         canvas.drawRoundRect(box, dp(11), dp(11), tooltipPaint);
 
-        String text = month
+        String text = privacyEnabled
+                ? month + "   Valores ocultos"
+                : month
                 + "   Entradas " + compactMoney(in, true)
                 + "   •   Saídas " + compactMoney(out, true);
 

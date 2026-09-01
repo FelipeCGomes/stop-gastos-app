@@ -2,6 +2,7 @@ package com.example.stop_fgastos.presentation.dashboard;
 
 import android.os.Bundle;
 import android.view.View;
+import android.widget.ImageButton;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -19,6 +20,7 @@ import com.example.stop_fgastos.presentation.common.DisplayRow;
 import com.example.stop_fgastos.presentation.common.RecordAdapter;
 import com.example.stop_fgastos.presentation.common.UiFormat;
 import com.example.stop_fgastos.presentation.common.UiMotion;
+import com.example.stop_fgastos.presentation.common.UiPrivacy;
 import com.example.stop_fgastos.presentation.common.ViewModelAccess;
 import com.example.stop_fgastos.presentation.main.MainViewModel;
 import com.google.android.material.progressindicator.LinearProgressIndicator;
@@ -42,6 +44,9 @@ public final class DashboardFragment extends Fragment {
     private TextView healthDetail;
     private TextView healthScore;
     private TextView empty;
+    private ImageButton privacyButton;
+    private boolean privacyEnabled;
+    private FinanceState latestState = new FinanceState();
     private LinearProgressIndicator healthProgress;
     private FinanceTrendChartView trendChart;
     private RecordAdapter adapter;
@@ -66,7 +71,18 @@ public final class DashboardFragment extends Fragment {
         healthScore = view.findViewById(R.id.dashboard_health_score);
         healthProgress = view.findViewById(R.id.dashboard_health_progress);
         empty = view.findViewById(R.id.dashboard_empty);
+        privacyButton = view.findViewById(R.id.dashboard_privacy);
         trendChart = view.findViewById(R.id.dashboard_trend_chart);
+
+        privacyEnabled = UiPrivacy.enabled(requireContext());
+        renderPrivacyIcon();
+        privacyButton.setOnClickListener(v -> {
+            privacyEnabled = !privacyEnabled;
+            UiPrivacy.setEnabled(requireContext(), privacyEnabled);
+            renderPrivacyIcon();
+            UiMotion.pop(v);
+            render(latestState);
+        });
 
         RecyclerView recycler = view.findViewById(R.id.dashboard_recycler);
         recycler.setLayoutManager(new LinearLayoutManager(requireContext()));
@@ -86,26 +102,32 @@ public final class DashboardFragment extends Fragment {
     }
 
     private void render(FinanceState state) {
+        latestState = state == null ? new FinanceState() : state;
         YearMonth currentMonth = YearMonth.now();
         MonthlySummary summary = viewModel.summary(currentMonth);
 
         month.setText(UiFormat.month(currentMonth));
-        balance.setText(UiFormat.money(summary.balance()));
-        income.setText(UiFormat.money(summary.income()));
-        expense.setText(UiFormat.money(summary.expense()));
-        savings.setText(String.format(
-                Locale.getDefault(),
-                "Economia %.1f%%",
-                summary.savingsRate()
-        ));
+        balance.setText(privateMoney(summary.balance()));
+        income.setText(privateMoney(summary.income()));
+        expense.setText(privateMoney(summary.expense()));
 
-        balanceStatus.setText(
-                summary.balance() > 0
-                        ? "Saldo positivo"
-                        : summary.balance() < 0
-                        ? "Saldo negativo"
-                        : "Mês equilibrado"
-        );
+        if (privacyEnabled) {
+            savings.setText("Valores ocultos");
+            balanceStatus.setText("Toque no olho para revelar");
+        } else {
+            savings.setText(String.format(
+                    Locale.getDefault(),
+                    "Economia %.1f%%",
+                    summary.savingsRate()
+            ));
+            balanceStatus.setText(
+                    summary.balance() > 0
+                            ? "Saldo positivo"
+                            : summary.balance() < 0
+                            ? "Saldo negativo"
+                            : "Mês equilibrado"
+            );
+        }
 
         renderHealth(summary);
 
@@ -131,6 +153,7 @@ public final class DashboardFragment extends Fragment {
             trendExpense.add(item.expense());
         }
 
+        trendChart.setPrivacyEnabled(privacyEnabled);
         trendChart.setSeries(labels, trendIncome, trendExpense);
 
         List<FinanceRecord> transactions = new ArrayList<>(
@@ -154,7 +177,9 @@ public final class DashboardFragment extends Fragment {
                     tx,
                     tx.text("description", "Lançamento"),
                     tx.text("date") + " · " + tx.text("payment"),
-                    ("expense".equals(tx.text("type")) ? "- " : "+ ")
+                    privacyEnabled
+                            ? "••••"
+                            : ("expense".equals(tx.text("type")) ? "- " : "+ ")
                             + UiFormat.money(tx.number("amount")),
                     "",
                     false
@@ -165,6 +190,20 @@ public final class DashboardFragment extends Fragment {
         adapter.submit(rows);
 
         UiMotion.pop(balance);
+    }
+
+    private String privateMoney(double value) {
+        return privacyEnabled ? "••••" : UiFormat.money(value);
+    }
+
+    private void renderPrivacyIcon() {
+        if (privacyButton == null) return;
+        privacyButton.setImageResource(
+                privacyEnabled ? R.drawable.ic_visibility_off : R.drawable.ic_visibility
+        );
+        privacyButton.setContentDescription(
+                privacyEnabled ? "Mostrar valores" : "Ocultar valores"
+        );
     }
 
     private void renderHealth(MonthlySummary summary) {

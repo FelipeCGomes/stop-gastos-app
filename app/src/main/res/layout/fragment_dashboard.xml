@@ -30,12 +30,29 @@
             android:text="Seu dinheiro, sem complicação"
             android:textAppearance="@style/TextAppearance.StopGastos.Title" />
 
-        <TextView
-            android:id="@+id/dashboard_month"
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="5dp"
-            android:textAppearance="@style/TextAppearance.StopGastos.BodyMuted" />
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/dashboard_month"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:textAppearance="@style/TextAppearance.StopGastos.BodyMuted" />
+
+            <ImageButton
+                android:id="@+id/dashboard_privacy"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:background="@drawable/bg_input"
+                android:contentDescription="Ocultar ou mostrar valores"
+                android:padding="10dp"
+                android:src="@drawable/ic_visibility_off" />
+        </LinearLayout>
 
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/dashboard_hero"

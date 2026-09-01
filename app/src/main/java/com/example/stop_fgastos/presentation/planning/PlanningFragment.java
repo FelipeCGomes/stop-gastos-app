@@ -16,6 +16,7 @@ import com.example.stop_fgastos.R;
 import com.example.stop_fgastos.domain.model.FinanceRecord;
 import com.example.stop_fgastos.domain.model.FinanceSection;
 import com.example.stop_fgastos.domain.model.FinanceState;
+import com.example.stop_fgastos.presentation.common.BillPaymentDialog;
 import com.example.stop_fgastos.presentation.common.DisplayRow;
 import com.example.stop_fgastos.presentation.common.RecordAdapter;
 import com.example.stop_fgastos.presentation.common.RecordDialogs;
@@ -23,6 +24,7 @@ import com.example.stop_fgastos.presentation.common.UiFormat;
 import com.example.stop_fgastos.presentation.common.ViewModelAccess;
 import com.example.stop_fgastos.presentation.main.MainViewModel;
 import com.google.android.material.button.MaterialButton;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 import java.time.LocalDate;
 import java.time.YearMonth;
@@ -80,8 +82,16 @@ public final class PlanningFragment extends Fragment {
 
             @Override
             public void onSecondary(DisplayRow row) {
-                if (currentSection() == FinanceSection.BILLS && !row.record.bool("paid")) {
-                    viewModel.payBill(row.record);
+                if (currentSection() != FinanceSection.BILLS) return;
+
+                if (row.record.bool("paid")) {
+                    confirmUndoPayment(row.record);
+                } else {
+                    BillPaymentDialog.show(
+                            requireContext(),
+                            row.record,
+                            paidAmount -> viewModel.payBill(row.record, paidAmount)
+                    );
                 }
             }
 
@@ -166,19 +176,44 @@ public final class PlanningFragment extends Fragment {
                     break;
 
                 case BILLS:
-                    String status = record.bool("paid")
+                    boolean paid = record.bool("paid");
+                    String status = paid
                             ? "Pago"
                             : (record.text("dueDate").compareTo(LocalDate.now().toString()) < 0
                             ? "Vencido"
                             : "Pendente");
+
+                    StringBuilder billSubtitle = new StringBuilder();
+                    billSubtitle.append("Vence ").append(record.text("dueDate")).append(" · ").append(status);
+
+                    if (paid) {
+                        billSubtitle.append(" em ").append(record.text("paidAt"));
+                        int daysLate = record.integer("daysLate");
+                        double lateFee = record.number("lateFeeAmount");
+                        double discount = record.number("discountAmount");
+
+                        if (daysLate > 0) {
+                            billSubtitle.append(" · ").append(daysLate).append(" dia(s) atraso");
+                        }
+                        if (lateFee > 0.005) {
+                            billSubtitle.append(" · juros ").append(UiFormat.money(lateFee));
+                        } else if (discount > 0.005) {
+                            billSubtitle.append(" · desconto ").append(UiFormat.money(discount));
+                        }
+                    }
+
+                    double displayAmount = paid && record.number("paidAmount") > 0
+                            ? record.number("paidAmount")
+                            : record.number("amount");
+
                     rows.add(new DisplayRow(
                             record,
                             record.text("description", "Conta"),
-                            record.text("dueDate") + " · " + status,
+                            billSubtitle.toString(),
                             ("expense".equals(record.text("type")) ? "- " : "+ ")
-                                    + UiFormat.money(record.number("amount")),
+                                    + UiFormat.money(displayAmount),
                             "Editar",
-                            record.bool("paid") ? "" : "Marcar pago",
+                            paid ? "Desfazer pago" : "Registrar pago",
                             true
                     ));
                     break;
@@ -214,6 +249,31 @@ public final class PlanningFragment extends Fragment {
             }
         }
         adapter.submit(rows);
+    }
+
+    private void confirmUndoPayment(FinanceRecord bill) {
+        double paidAmount = bill.number("paidAmount") > 0
+                ? bill.number("paidAmount")
+                : bill.number("amount");
+
+        String detail = "Pagamento registrado em " + bill.text("paidAt")
+                + " no valor de " + UiFormat.money(paidAmount) + ".";
+
+        if (bill.number("lateFeeAmount") > 0.005) {
+            detail += "\nJuros/acréscimos registrados: "
+                    + UiFormat.money(bill.number("lateFeeAmount")) + ".";
+        }
+
+        detail += "\n\nAo desfazer, o lançamento financeiro criado por este pagamento também será removido.";
+
+        new MaterialAlertDialogBuilder(requireContext())
+                .setTitle("Marcar como não pago?")
+                .setMessage(detail)
+                .setNegativeButton("Cancelar", null)
+                .setPositiveButton("Desfazer pagamento", (dialog, which) ->
+                        viewModel.undoBillPayment(bill)
+                )
+                .show();
     }
 
     private double spentForCategory(String category) {
