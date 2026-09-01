@@ -19,6 +19,7 @@ import com.example.stop_fgastos.domain.repository.FamilyRepository;
 import com.example.stop_fgastos.domain.repository.FinanceRepository;
 import com.example.stop_fgastos.domain.repository.ResultCallback;
 
+import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.List;
 import java.util.Map;
@@ -91,9 +92,18 @@ public final class MainViewModel extends ViewModel {
         container.saveTransaction.delete(record, writeCallback());
     }
 
-    public void payBill(FinanceRecord bill, double paidAmount) {
+    public void payBill(
+            FinanceRecord bill,
+            double paidAmount,
+            LocalDate paidDate
+    ) {
         sync.setValue("Sincronizando");
-        container.payBill.execute(bill, paidAmount, writeCallback());
+        container.payBill.execute(
+                bill,
+                paidAmount,
+                paidDate,
+                writeCallback()
+        );
     }
 
     public void undoBillPayment(FinanceRecord bill) {
@@ -101,9 +111,18 @@ public final class MainViewModel extends ViewModel {
         container.payBill.undo(bill, writeCallback());
     }
 
-    public void payTransaction(FinanceRecord transaction, double paidAmount) {
+    public void payTransaction(
+            FinanceRecord transaction,
+            double paidAmount,
+            LocalDate paidDate
+    ) {
         sync.setValue("Sincronizando");
-        container.transactionPayment.pay(transaction, paidAmount, writeCallback());
+        container.transactionPayment.pay(
+                transaction,
+                paidAmount,
+                paidDate,
+                writeCallback()
+        );
     }
 
     public void undoTransactionPayment(FinanceRecord transaction) {

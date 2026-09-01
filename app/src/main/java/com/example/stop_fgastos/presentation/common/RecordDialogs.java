@@ -175,8 +175,13 @@ public final class RecordDialogs {
         amountField.setText(total <= 0 ? "" : String.valueOf(total));
         dateField.setText(
                 existing == null
-                        ? LocalDate.now().toString()
-                        : existing.text("purchaseDate", existing.text("date"))
+                        ? UiFormat.date(LocalDate.now())
+                        : UiFormat.date(
+                                existing.text(
+                                        "purchaseDate",
+                                        existing.text("date")
+                                )
+                        )
         );
         installmentsField.setText(
                 existing == null
@@ -262,7 +267,14 @@ public final class RecordDialogs {
             TransactionInput input = new TransactionInput();
             input.description = descriptionField.getText().toString().trim();
             input.total = UiFormat.parseMoney(amountField.getText().toString());
-            input.purchaseDate = dateField.getText().toString().trim();
+            String displayDate = dateField.getText().toString().trim();
+            try {
+                input.purchaseDate = UiFormat.isoDate(displayDate);
+            } catch (Exception error) {
+                dateField.setError("Use o formato dd/MM/aa.");
+                dateField.requestFocus();
+                return;
+            }
 
             try {
                 input.installments = Math.max(
@@ -294,14 +306,6 @@ public final class RecordDialogs {
             if (input.total <= 0.0) {
                 amountField.setError("Informe um valor maior que zero.");
                 amountField.requestFocus();
-                return;
-            }
-
-            try {
-                LocalDate.parse(input.purchaseDate);
-            } catch (Exception error) {
-                dateField.setError("Use o formato AAAA-MM-DD.");
-                dateField.requestFocus();
                 return;
             }
 
@@ -514,7 +518,14 @@ public final class RecordDialogs {
     ) {
         form.field(0, "Descrição", text(record, "description"), false);
         form.field(1, "Valor", numberText(record, "amount"), true);
-        form.field(2, "Vencimento (AAAA-MM-DD)", record == null ? LocalDate.now().toString() : record.text("dueDate"), false);
+        form.field(
+                2,
+                "Vencimento (dd/MM/aa)",
+                record == null
+                        ? UiFormat.date(LocalDate.now())
+                        : UiFormat.date(record.text("dueDate")),
+                false
+        );
         form.field(3, "Observações", text(record, "notes"), false);
         form.spinner(context, 0, List.of(
                 new Choice("A pagar", "expense"),
@@ -538,7 +549,12 @@ public final class RecordDialogs {
         form.field(0, "Nome da meta", text(record, "name"), false);
         form.field(1, "Objetivo", numberText(record, "target"), true);
         form.field(2, "Valor atual", record == null ? "0" : numberText(record, "current"), true);
-        form.field(3, "Prazo (AAAA-MM-DD)", text(record, "deadline"), false);
+        form.field(
+                3,
+                "Prazo (dd/MM/aa)",
+                record == null ? "" : UiFormat.date(record.text("deadline")),
+                false
+        );
         form.field(4, "Ícone", record == null ? "🎯" : record.text("icon", "🎯"), false);
     }
 
@@ -589,7 +605,14 @@ public final class RecordDialogs {
             FinanceRecord record
     ) {
         form.field(0, "Valor", numberText(record, "amount"), true);
-        form.field(1, "Data (AAAA-MM-DD)", record == null ? LocalDate.now().toString() : record.text("date"), false);
+        form.field(
+                1,
+                "Data (dd/MM/aa)",
+                record == null
+                        ? UiFormat.date(LocalDate.now())
+                        : UiFormat.date(record.text("date")),
+                false
+        );
         form.field(2, "Observações", text(record, "notes"), false);
         form.spinner(context, 0, accountChoices(state), record == null ? "" : record.text("fromAccountId"));
         form.spinner(context, 1, accountChoices(state), record == null ? "" : record.text("toAccountId"));
@@ -644,7 +667,7 @@ public final class RecordDialogs {
             case BILLS:
                 out.put("description", value(form, 0));
                 out.put("amount", money(form, 1));
-                out.put("dueDate", value(form, 2));
+                out.put("dueDate", normalizedDate(value(form, 2)));
                 out.put("notes", value(form, 3));
                 out.put("type", form.selected(0).value);
                 out.put("category", form.selected(1).value);
@@ -658,7 +681,7 @@ public final class RecordDialogs {
                 out.put("name", value(form, 0));
                 out.put("target", money(form, 1));
                 out.put("current", money(form, 2));
-                out.put("deadline", value(form, 3));
+                out.put("deadline", normalizedDate(value(form, 3)));
                 out.put("icon", value(form, 4));
                 break;
             case ACCOUNTS:
@@ -682,7 +705,7 @@ public final class RecordDialogs {
                 break;
             case TRANSFERS:
                 out.put("amount", money(form, 0));
-                out.put("date", value(form, 1));
+                out.put("date", normalizedDate(value(form, 1)));
                 out.put("notes", value(form, 2));
                 out.put("fromAccountId", form.selected(0).value);
                 out.put("toAccountId", form.selected(1).value);
@@ -799,6 +822,15 @@ public final class RecordDialogs {
 
     private static String value(Form form, int index) {
         return form.fields[index].getText().toString().trim();
+    }
+
+    private static String normalizedDate(String value) {
+        if (value == null || value.isBlank()) return "";
+        try {
+            return UiFormat.isoDate(value);
+        } catch (Exception ignored) {
+            return value;
+        }
     }
 
     private static double money(Form form, int index) {

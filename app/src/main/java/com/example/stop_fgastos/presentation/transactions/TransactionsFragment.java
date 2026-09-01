@@ -93,9 +93,10 @@ public final class TransactionsFragment extends Fragment {
                     BillPaymentDialog.show(
                             requireContext(),
                             transaction,
-                            paidAmount -> viewModel.payTransaction(
+                            (paidAmount, paidDate) -> viewModel.payTransaction(
                                     transaction,
-                                    paidAmount
+                                    paidAmount,
+                                    paidDate
                             )
                     );
                 }
@@ -203,10 +204,10 @@ public final class TransactionsFragment extends Fragment {
                     ? ""
                     : (expense ? "- " : "+ ") + UiFormat.money(tx.number("amount"));
 
-            String subtitle = category + " · " + tx.text("date") + installment;
+            String subtitle = category + " · " + UiFormat.date(tx.text("date")) + installment;
             if (paymentManaged) {
                 if (paid) {
-                    subtitle += " · Pago em " + tx.text("paidAt");
+                    subtitle += " · Pago em " + UiFormat.date(tx.text("paidAt"));
                     double paidAmount = tx.number("paidAmount");
                     if (paidAmount > 0) {
                         subtitle += " · Valor pago: " + UiFormat.money(paidAmount);
@@ -259,7 +260,7 @@ public final class TransactionsFragment extends Fragment {
 
         StringBuilder message = new StringBuilder();
         message.append("Pagamento registrado em ")
-                .append(transaction.text("paidAt"))
+                .append(UiFormat.date(transaction.text("paidAt")))
                 .append(" no valor de ")
                 .append(UiFormat.money(paidAmount))
                 .append(".");

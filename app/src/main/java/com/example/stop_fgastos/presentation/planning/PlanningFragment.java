@@ -91,7 +91,11 @@ public final class PlanningFragment extends Fragment {
                     BillPaymentDialog.show(
                             requireContext(),
                             row.record,
-                            paidAmount -> viewModel.payBill(row.record, paidAmount)
+                            (paidAmount, paidDate) -> viewModel.payBill(
+                                    row.record,
+                                    paidAmount,
+                                    paidDate
+                            )
                     );
                 }
             }
@@ -187,14 +191,17 @@ public final class PlanningFragment extends Fragment {
                             : "Pendente");
 
                     StringBuilder billSubtitle = new StringBuilder();
-                    billSubtitle.append("Vence ").append(record.text("dueDate")).append(" · ").append(status);
+                    billSubtitle.append("Vence ")
+                            .append(UiFormat.date(record.text("dueDate")))
+                            .append(" · ")
+                            .append(status);
 
                     if (paid) {
                         double paidAmount = record.number("paidAmount") > 0
                                 ? record.number("paidAmount")
                                 : record.number("amount");
 
-                        billSubtitle.append(" em ").append(record.text("paidAt"));
+                        billSubtitle.append(" em ").append(UiFormat.date(record.text("paidAt")));
                         billSubtitle.append(" · Valor pago: ").append(UiFormat.money(paidAmount));
 
                         int daysLate = record.integer("daysLate");
@@ -249,7 +256,12 @@ public final class PlanningFragment extends Fragment {
                     rows.add(new DisplayRow(
                             record,
                             record.text("icon", "🎯") + " " + record.text("name", "Meta"),
-                            String.format(java.util.Locale.getDefault(), "%.0f%% · %s", progress, record.text("deadline")),
+                            String.format(
+                                    java.util.Locale.getDefault(),
+                                    "%.0f%% · %s",
+                                    progress,
+                                    UiFormat.date(record.text("deadline"))
+                            ),
                             UiFormat.money(current) + " / " + UiFormat.money(target),
                             "Editar",
                             true
@@ -268,7 +280,7 @@ public final class PlanningFragment extends Fragment {
                 ? bill.number("paidAmount")
                 : bill.number("amount");
 
-        String detail = "Pagamento registrado em " + bill.text("paidAt")
+        String detail = "Pagamento registrado em " + UiFormat.date(bill.text("paidAt"))
                 + " no valor de " + UiFormat.money(paidAmount) + ".";
 
         if (bill.number("lateFeeAmount") > 0.005) {

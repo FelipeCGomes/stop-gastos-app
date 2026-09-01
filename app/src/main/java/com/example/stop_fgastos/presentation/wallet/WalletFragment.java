@@ -145,7 +145,7 @@ public final class WalletFragment extends Fragment {
                         record,
                         accountName(record.text("fromAccountId"))
                                 + " → " + accountName(record.text("toAccountId")),
-                        record.text("date") + (record.text("notes").isBlank()
+                        UiFormat.date(record.text("date")) + (record.text("notes").isBlank()
                                 ? ""
                                 : " · " + record.text("notes")),
                         UiFormat.money(record.number("amount")),

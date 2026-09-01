@@ -38,13 +38,6 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="5dp"
                 android:textAppearance="@style/TextAppearance.StopGastos.BodyMuted" />
-
-            <TextView
-                android:id="@+id/payment_bill_date"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="3dp"
-                android:textAppearance="@style/TextAppearance.StopGastos.BodyMuted" />
         </LinearLayout>
     </com.google.android.material.card.MaterialCardView>
 
@@ -52,6 +45,24 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="14dp"
+        android:hint="Data do pagamento (dd/MM/aa)"
+        app:boxBackgroundMode="outline"
+        app:boxStrokeColor="@color/primary"
+        app:helperText="Preenchida automaticamente com hoje. Você pode editar.">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/payment_bill_date"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="date"
+            android:maxLength="10"
+            android:maxLines="1" />
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <com.google.android.material.textfield.TextInputLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
         android:hint="Valor efetivamente pago"
         app:boxBackgroundMode="outline"
         app:boxStrokeColor="@color/primary"

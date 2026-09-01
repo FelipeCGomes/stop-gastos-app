@@ -74,13 +74,14 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
-            android:hint="Data">
+            android:hint="Data (dd/MM/aa)">
 
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/tx_date"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:inputType="date"
+                android:maxLength="10"
                 android:maxLines="1" />
         </com.google.android.material.textfield.TextInputLayout>
 

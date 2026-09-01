@@ -289,7 +289,7 @@ public final class DashboardFragment extends Fragment {
             rows.add(new DisplayRow(
                     tx,
                     tx.text("description", "Lançamento"),
-                    tx.text("date") + " · " + tx.text("payment"),
+                    UiFormat.date(tx.text("date")) + " · " + tx.text("payment"),
                     value,
                     "",
                     false

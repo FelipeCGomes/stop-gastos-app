@@ -94,7 +94,7 @@ public final class CalendarFragment extends Fragment {
             rows.add(new DisplayRow(
                     tx,
                     tx.text("description", "Lançamento"),
-                    tx.text("date") + " · Lançamento" + installment,
+                    UiFormat.date(tx.text("date")) + " · Lançamento" + installment,
                     !"expense".equals(tx.text("type")) && !showPositive
                             ? ""
                             : ("expense".equals(tx.text("type")) ? "- " : "+ ")
@@ -109,7 +109,9 @@ public final class CalendarFragment extends Fragment {
             rows.add(new DisplayRow(
                     bill,
                     bill.text("description", "Conta prevista"),
-                    bill.text("dueDate") + " · " + (bill.bool("paid") ? "Pago" : "Previsto"),
+                    UiFormat.date(bill.text("dueDate"))
+                            + " · "
+                            + (bill.bool("paid") ? "Pago" : "Previsto"),
                     !"expense".equals(bill.text("type")) && !showPositive
                             ? ""
                             : ("expense".equals(bill.text("type")) ? "- " : "+ ")

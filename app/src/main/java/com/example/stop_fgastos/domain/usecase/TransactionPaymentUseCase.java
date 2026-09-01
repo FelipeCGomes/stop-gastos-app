@@ -21,6 +21,7 @@ public final class TransactionPaymentUseCase {
     public void pay(
             FinanceRecord transaction,
             double paidAmount,
+            LocalDate paidDate,
             ResultCallback<Void> callback
     ) {
         if (paidAmount <= 0.0) {
@@ -30,17 +31,17 @@ public final class TransactionPaymentUseCase {
             return;
         }
 
-        LocalDate paidDate = LocalDate.now();
+        LocalDate effectivePaidDate = paidDate == null ? LocalDate.now() : paidDate;
         LocalDate dueDate = parseDate(
                 transaction.text("dueDate", transaction.text("date")),
-                paidDate
+                effectivePaidDate
         );
 
         double originalAmount = transaction.number("originalAmount") > 0
                 ? transaction.number("originalAmount")
                 : transaction.number("amount");
 
-        long daysLate = Math.max(0, ChronoUnit.DAYS.between(dueDate, paidDate));
+        long daysLate = Math.max(0, ChronoUnit.DAYS.between(dueDate, effectivePaidDate));
         double difference = roundMoney(paidAmount - originalAmount);
         double additionalAmount = Math.max(0.0, difference);
         double lateFeeAmount = daysLate > 0 ? additionalAmount : 0.0;
@@ -53,7 +54,7 @@ public final class TransactionPaymentUseCase {
         fields.put("amount", roundMoney(paidAmount));
         fields.put("originalAmount", roundMoney(originalAmount));
         fields.put("paid", true);
-        fields.put("paidAt", paidDate.toString());
+        fields.put("paidAt", effectivePaidDate.toString());
         fields.put("paidAmount", roundMoney(paidAmount));
         fields.put("paymentDifference", difference);
         fields.put("additionalAmount", additionalAmount);

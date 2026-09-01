@@ -21,6 +21,7 @@ public final class PayBillUseCase {
     public void execute(
             FinanceRecord bill,
             double paidAmount,
+            LocalDate paidDate,
             ResultCallback<Void> callback
     ) {
         if (bill.bool("paid")) {
@@ -32,9 +33,9 @@ public final class PayBillUseCase {
             return;
         }
 
-        LocalDate paidDate = LocalDate.now();
-        LocalDate dueDate = parseDate(bill.text("dueDate"), paidDate);
-        long daysLate = Math.max(0, ChronoUnit.DAYS.between(dueDate, paidDate));
+        LocalDate effectivePaidDate = paidDate == null ? LocalDate.now() : paidDate;
+        LocalDate dueDate = parseDate(bill.text("dueDate"), effectivePaidDate);
+        long daysLate = Math.max(0, ChronoUnit.DAYS.between(dueDate, effectivePaidDate));
 
         double originalAmount = bill.number("amount");
         double difference = roundMoney(paidAmount - originalAmount);
@@ -45,7 +46,7 @@ public final class PayBillUseCase {
                 ? 0.0
                 : roundRate((lateFeeAmount / originalAmount) * 100.0);
 
-        String date = paidDate.toString();
+        String date = effectivePaidDate.toString();
         String now = Instant.now().toString();
         String transactionId = "tx_" + UUID.randomUUID();
 
