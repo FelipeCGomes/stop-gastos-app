@@ -33,5 +33,11 @@ public interface FinanceRepository {
             ResultCallback<Void> callback
     );
 
+    void saveBillWithTransaction(
+            FinanceRecord bill,
+            FinanceRecord transaction,
+            ResultCallback<Void> callback
+    );
+
     void deleteAllUserData(String uid, ResultCallback<Void> callback);
 }
