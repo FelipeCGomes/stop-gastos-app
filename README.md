@@ -30,6 +30,27 @@ O conteúdo continua no campo `value`, permitindo que o Android leia os mesmos d
 
 A camada nativa preserva campos desconhecidos ao atualizar registros existentes, reduzindo o risco de o app Android apagar metadados criados pela versão web.
 
+## Funcionalidades transportadas nesta etapa
+
+Além da base inicial, o Android agora também possui telas e gravação nativa para:
+
+- Contas e carteiras com saldo inicial, saldo individual e consolidado
+- Saldo de conta considerando lançamentos e transferências
+- Rendas recorrentes em Planejamento/Configurações
+- Geração da receita do mês ao cadastrar uma renda recorrente
+- Contas a pagar e receber
+- Baixa de conta prevista gerando lançamento vinculado por `billId`
+- Transferências entre contas sem alterar receitas/despesas
+- Orçamentos mensais por categoria com indicador de consumo
+- Metas financeiras com progresso
+- Categorias personalizadas e proteção contra exclusão quando estão em uso
+- Lista de compras pessoal
+- Itens, quantidade, valor unitário e total da lista
+- Navegação reorganizada em Início, Lançamentos, Planejar, Carteira e Mais
+
+Os novos módulos continuam usando exatamente os documentos modulares do web:
+`accounts`, `incomeSources`, `bills`, `transfers`, `budgets`, `goals`, `categories` e `shoppingLists`.
+
 ## Funcionalidades nativas já implementadas
 
 - Login Google preparado com Credential Manager
@@ -118,16 +139,8 @@ app/src/main/java/com/example/stop_fgastos/
 
 A arquitetura está preparada para receber os demais documentos que já existem no Firestore:
 
-- Contas e carteiras
-- Rendas recorrentes em Configurações
-- Contas a pagar/receber
-- Transferências
-- Orçamentos
-- Metas
-- Categorias personalizadas
 - Calendário financeiro
-- Relatórios
-- Lista de compras pessoal
+- Relatórios e gráficos avançados
 - Lista de compras familiar
 - Família, membros e convites
 - Notificações
