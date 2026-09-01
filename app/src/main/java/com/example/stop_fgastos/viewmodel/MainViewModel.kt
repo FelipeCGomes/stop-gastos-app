@@ -1,6 +1,8 @@
 package com.example.stop_fgastos.viewmodel
 
+import android.app.Activity
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.example.stop_fgastos.auth.GoogleAuthManager
 import com.example.stop_fgastos.data.FamilyRepository
 import com.example.stop_fgastos.data.FinanceRepository
@@ -26,6 +28,7 @@ import com.google.firebase.auth.FirebaseUser
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.YearMonth
 import java.util.UUID
@@ -867,6 +870,59 @@ class MainViewModel : ViewModel() {
 
         if (pending.isNotEmpty()) {
             runWrite { callback -> repository.upsertTransactions(pending, callback) }
+        }
+    }
+
+    fun transferFamilyOwnership(member: FamilyMemberRecord) =
+        runWrite { callback -> familyRepository.transferOwnership(member, callback) }
+
+    fun leaveFamily() =
+        runWrite { callback -> familyRepository.leaveFamily(callback) }
+
+    fun updateSharedShoppingList(listId: String, name: String, store: String) =
+        runWrite { callback -> familyRepository.updateSharedList(listId, name, store, callback) }
+
+    fun updateSharedShoppingItem(
+        listId: String,
+        item: ShoppingItemRecord,
+        product: String,
+        qty: Double,
+        unitPrice: Double
+    ) {
+        val updated = item.copy(
+            product = product,
+            qty = qty,
+            unitPrice = unitPrice,
+            updatedAt = nowIso()
+        )
+        runWrite { callback -> familyRepository.updateSharedItem(listId, updated, callback) }
+    }
+
+    fun loadAllSharedShoppingItems() {
+        familyRepository.loadAllSharedItems { result ->
+            result.onFailure { setError(it) }
+        }
+    }
+
+    fun reauthenticateAndDeleteAccount(activity: Activity, onFinished: (Boolean) -> Unit) {
+        setSyncing()
+        viewModelScope.launch {
+            val result = runCatching {
+                GoogleAuthManager.reauthenticate(activity)
+                familyRepository.deleteCurrentAccount().getOrThrow()
+            }
+
+            result.fold(
+                onSuccess = {
+                    repository.stop()
+                    _uiState.value = MainUiState(loading = false)
+                    onFinished(true)
+                },
+                onFailure = {
+                    setError(it)
+                    onFinished(false)
+                }
+            )
         }
     }
 
