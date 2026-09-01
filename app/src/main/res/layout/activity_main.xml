@@ -65,7 +65,6 @@
             android:layout_width="match_parent"
             android:layout_height="78dp"
             android:background="@color/transparent"
-            app:itemActiveIndicatorColor="@color/primary_soft"
             app:itemHorizontalTranslationEnabled="false"
             app:itemIconSize="21dp"
             app:itemIconTint="@color/nav_item_color"
