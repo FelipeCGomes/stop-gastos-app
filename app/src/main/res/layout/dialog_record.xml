@@ -2,16 +2,30 @@
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content">
-    <LinearLayout android:id="@+id/dialog_container" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="8dp">
+    <LinearLayout
+        android:id="@+id/dialog_container"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="8dp">
+
         <EditText android:id="@+id/field1" android:layout_width="match_parent" android:layout_height="wrap_content" />
         <EditText android:id="@+id/field2" android:layout_width="match_parent" android:layout_height="wrap_content" />
         <EditText android:id="@+id/field3" android:layout_width="match_parent" android:layout_height="wrap_content" />
         <EditText android:id="@+id/field4" android:layout_width="match_parent" android:layout_height="wrap_content" />
         <EditText android:id="@+id/field5" android:layout_width="match_parent" android:layout_height="wrap_content" />
         <EditText android:id="@+id/field6" android:layout_width="match_parent" android:layout_height="wrap_content" />
+
         <Spinner android:id="@+id/spinner1" android:layout_width="match_parent" android:layout_height="wrap_content" />
         <Spinner android:id="@+id/spinner2" android:layout_width="match_parent" android:layout_height="wrap_content" />
         <Spinner android:id="@+id/spinner3" android:layout_width="match_parent" android:layout_height="wrap_content" />
-        <CheckBox android:id="@+id/check1" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Ativo" />
+        <Spinner android:id="@+id/spinner4" android:layout_width="match_parent" android:layout_height="wrap_content" />
+        <Spinner android:id="@+id/spinner5" android:layout_width="match_parent" android:layout_height="wrap_content" />
+
+        <CheckBox
+            android:id="@+id/check1"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Ativo" />
     </LinearLayout>
 </ScrollView>
